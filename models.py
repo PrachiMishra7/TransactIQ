@@ -4,7 +4,7 @@ from sqlalchemy import Column, String, Integer, Float, Boolean, DateTime, Text, 
 from sqlalchemy.orm import relationship
 import enum
 
-from app.database import Base
+from database import Base
 
 
 class ProcessingStatus(str, enum.Enum):

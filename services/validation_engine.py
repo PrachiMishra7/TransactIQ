@@ -3,8 +3,8 @@ from datetime import datetime
 
 import pandas as pd
 
-from app.services.column_mapper import map_columns
-from app.services.validators import (
+from services.column_mapper import map_columns
+from services.validators import (
     validate_email, validate_phone, validate_date, validate_time,
     validate_payment, validate_product, validate_order, ValidationResult,
 )
@@ -46,7 +46,7 @@ def clean_name(value) -> str:
 def normalize_date(value) -> str:
     if pd.isna(value) or str(value).strip() == "":
         return value
-    from app.services.validators import parse_date
+    from services.validators import parse_date
     parsed = parse_date(str(value))
     if parsed:
         return parsed.strftime("%Y-%m-%d")
