@@ -1,0 +1,11 @@
+order_id,customer_name,phone,email,address,order_date,delivery_date,sku,quantity,unit_price,total_price,payment_method,transaction_id,country
+ORD-001,  John Doe  ,+91-98765 43210,abc@gmail.com,"123 Main St, Mumbai",2024-01-15,2024-01-20,SKU-100,2,500.00,1000.00,UPI,TXN001,India
+ORD-002,Jane Smith,87654321,jane@company.com,456 Orchard Rd,15-01-2024,20-01-2024,SKU-200,1,1200.00,1200.00,Card,TXN002,Singapore
+ORD-003,  Bob Wilson  ,9876543210,bob@gmail,789 Park Ave,2024/02/01,2024-01-28,SKU-300,3,100.00,250.00,Wallet,TXN003,India
+ORD-001,Duplicate Order,9123456789,dup@test.com,Test Addr,2024-03-01,2024-03-05,SKU-400,1,50.00,50.00,Cash,,India
+ORD-004,Alice Brown,912345678,alice@gmail.com,321 Elm St,2025-12-01,2025-12-05,SKU-500,0,200.00,200.00,Net Banking,TXN004,India
+ORD-005,Charlie Lee,91234567,charlie@tempmail.com,555 Test Rd,2024-04-10,2024-04-15,SKU-600,2,150.00,300.00,Bitcoin,TXN005,Singapore
+ORD-006,  diana prince  ,+65-9123 4567,diana@gmail.com,88 Marina Bay,2024-05-01,2024-05-03,SKU-700,5,80.00,400.00,UPI,TXN004,India
+ORD-007,Eve Adams,9988776655,eve@gmail.com,42 Baker St,2024-06-01,,SKU-800,1,999.00,999.00,Card,TXN007,India
+ORD-008,Frank Miller,9123456789,frank@gmail.com,10 Downing,invalid-date,2024-07-01,SKU-900,2,100.00,200.00,UPI,,India
+ORD-009,Grace Hopper,87654321,grace@company.com,MIT Campus,2024-08-01,2024-08-05,SKU-1000,1,5000.00,5000.00,Net Banking,TXN009,Singapore
