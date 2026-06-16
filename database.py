@@ -1,13 +1,15 @@
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
-from config import settings
+# Store DB in local AppData — NOT in OneDrive which causes SQLite lock conflicts
+_APP_DATA = os.path.join(os.path.expanduser("~"), "AppData", "Local", "TransactIQ")
+os.makedirs(_APP_DATA, exist_ok=True)
 
-engine_kwargs = {}
-if settings.database_url.startswith("sqlite"):
-    engine_kwargs["connect_args"] = {"check_same_thread": False}
+_DB_PATH = os.path.join(_APP_DATA, "transactiq.db").replace("\\", "/")
+DATABASE_URL = f"sqlite:///{_DB_PATH}"
 
-engine = create_engine(settings.database_url, **engine_kwargs)
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 

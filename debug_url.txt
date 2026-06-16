@@ -1,0 +1,1 @@
+sqlite:///C:\Users\ashut\OneDrive\Desktop\TransatIQ\dev.db
