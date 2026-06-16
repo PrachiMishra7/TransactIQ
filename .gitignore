@@ -18,5 +18,6 @@ dev.db
 .next/
 dist/
 build/
-backend/outputs/
-backend/uploads/
+outputs/
+uploads/
+debug_url.txt
