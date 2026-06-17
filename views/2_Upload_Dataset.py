@@ -231,7 +231,13 @@ try:
                 if not badges_html:
                     badges_html = '<span style="color:#94A3B8; font-style:italic;">None (Raw)</span>'
 
-                status_class = "status-completed" if u.processing_status.value == "completed" else ("status-error" if "error" in u.processing_status.value else "status-pending")
+                status_val = u.processing_status.value.lower()
+                if status_val == "completed":
+                    status_class = "status-completed"
+                elif "fail" in status_val or "error" in status_val:
+                    status_class = "status-error"
+                else:
+                    status_class = "status-pending"
                 
                 html_table += f"""
 <tr>

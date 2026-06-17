@@ -98,10 +98,14 @@ def generate_error_excel(output_path: str, errors: list[dict]) -> str:
 
 
 def generate_cleaned_excel(output_path: str, df: pd.DataFrame) -> str:
+    import re
+    # Remove openpyxl illegal characters (control characters) from all string columns
+    ILLEGAL_CHARACTERS_RE = re.compile(r'[\000-\010]|[\013-\014]|[\016-\037]')
+    
     # Ensure phone and ID columns are explicitly strings so Excel never uses scientific notation
     for col in df.columns:
         if "phone" in col.lower() or "id" in col.lower() or df[col].dtype == object:
-            df[col] = df[col].astype(str)
+            df[col] = df[col].astype(str).apply(lambda x: ILLEGAL_CHARACTERS_RE.sub("", x) if isinstance(x, str) else x)
             
     with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
         df.to_excel(writer, index=False, sheet_name='Cleaned Data')
