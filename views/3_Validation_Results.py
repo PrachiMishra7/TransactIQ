@@ -21,28 +21,41 @@ st.markdown("""
 
 db = SessionLocal()
 try:
-    if "current_upload_id" not in st.session_state:
-        st.markdown("""
-        <div class="info-callout">
-            No dataset selected. Please upload a file from the <strong>Upload Dataset</strong> page first.
-        </div>
-        """, unsafe_allow_html=True)
-        st.stop()
-
-    upload_id = st.session_state["current_upload_id"]
-    upload = db.query(Upload).filter(Upload.id == upload_id).first()
+db = SessionLocal()
+try:
+    upload_id = st.session_state.get("current_upload_id")
+    upload = db.query(Upload).filter(Upload.id == upload_id).first() if upload_id else None
 
     if not upload:
-        st.error("Upload record not found.")
-        st.stop()
+        st.warning("⚠️ No active dataset selected. Showing layout template. Please upload a dataset on the 'Upload Dataset' page to view live validation results.")
+        
+        file_name = "No Active File"
+        valid_rows = 0
+        invalid_rows = 0
+        quality_score = 0.0
+        total_rows = 0
+        success_rate = 0.0
+        score_color = "#94A3B8"
+        score_grad = "linear-gradient(135deg, #94a3b8 0%, #64748b 100%)"
+        errors = []
+    else:
+        if upload.processing_status != ProcessingStatus.COMPLETED:
+            st.warning(f"Processing status: **{upload.processing_status.value}**. Please wait for completion.")
+            st.stop()
 
-    if upload.processing_status != ProcessingStatus.COMPLETED:
-        st.warning(f"Processing status: **{upload.processing_status.value}**. Please wait for completion.")
-        st.stop()
-
-    # Summary Banner
-    success_rate = (upload.valid_rows / upload.total_rows * 100) if upload.total_rows > 0 else 0
-    score_color = "#10B981" if upload.quality_score >= 80 else "#F59E0B" if upload.quality_score >= 60 else "#EF4444"
+        file_name = upload.file_name
+        valid_rows = upload.valid_rows
+        invalid_rows = upload.invalid_rows
+        quality_score = upload.quality_score
+        total_rows = upload.total_rows
+        success_rate = (valid_rows / total_rows * 100) if total_rows > 0 else 0
+        score_color = "#10B981" if quality_score >= 80 else "#F59E0B" if quality_score >= 60 else "#EF4444"
+        
+        score_grad = "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)" if quality_score >= 50 else "linear-gradient(135deg, #f97316 0%, #c2410c 100%)"
+        if quality_score >= 80:
+            score_grad = "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)"
+            
+        errors = db.query(ValidationError).filter(ValidationError.upload_id == upload_id).all()
 
     c1, c2, c3, c4 = st.columns(4)
     
@@ -52,7 +65,7 @@ try:
         <div style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; margin-bottom: 8px; display: flex; align-items: center;">
             <span class="mi" style="font-size:18px; margin-right:6px;">description</span> Active File
         </div>
-        <div style="font-size: 1.2rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{upload.file_name}</div>
+        <div style="font-size: 1.2rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{file_name}</div>
     </div>
     """, unsafe_allow_html=True)
     
@@ -62,7 +75,7 @@ try:
         <div style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; margin-bottom: 8px; display: flex; align-items: center;">
             <span class="mi" style="font-size:18px; margin-right:6px;">check_circle</span> Valid Rows
         </div>
-        <div style="font-size: 2rem; font-weight: 800; line-height: 1;">{upload.valid_rows:,}</div>
+        <div style="font-size: 2rem; font-weight: 800; line-height: 1;">{valid_rows:,}</div>
         <div style="font-size: 0.85rem; opacity: 0.9; margin-top: 8px; font-weight: 500;">{success_rate:.1f}% pass rate</div>
     </div>
     """, unsafe_allow_html=True)
@@ -73,36 +86,29 @@ try:
         <div style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; margin-bottom: 8px; display: flex; align-items: center;">
             <span class="mi" style="font-size:18px; margin-right:6px;">warning</span> Error Rows
         </div>
-        <div style="font-size: 2rem; font-weight: 800; line-height: 1;">{upload.invalid_rows:,}</div>
+        <div style="font-size: 2rem; font-weight: 800; line-height: 1;">{invalid_rows:,}</div>
         <div style="font-size: 0.85rem; opacity: 0.9; margin-top: 8px; font-weight: 500;">{100-success_rate:.1f}% fail rate</div>
     </div>
     """, unsafe_allow_html=True)
 
     # 4. Quality Score (Amber/Orange or Dark if terrible)
-    score_grad = "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)" if upload.quality_score >= 50 else "linear-gradient(135deg, #f97316 0%, #c2410c 100%)"
-    if upload.quality_score >= 80:
-        score_grad = "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)"
-        
     c4.markdown(f"""
     <div style="background: {score_grad}; padding: 24px; border-radius: 16px; color: white; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2); margin-bottom: 20px;">
         <div style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; margin-bottom: 8px; display: flex; align-items: center;">
             <span class="mi" style="font-size:18px; margin-right:6px;">analytics</span> Quality Score
         </div>
-        <div style="font-size: 2rem; font-weight: 800; line-height: 1;">{upload.quality_score:.0f}<span style="font-size:1rem; opacity:0.7;"> / 100</span></div>
+        <div style="font-size: 2rem; font-weight: 800; line-height: 1;">{quality_score:.0f}<span style="font-size:1rem; opacity:0.7;"> / 100</span></div>
         <div style="font-size: 0.85rem; opacity: 0.9; margin-top: 8px; font-weight: 500;">Automated AI Score</div>
     </div>
     """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Fetch errors
-    errors = db.query(ValidationError).filter(ValidationError.upload_id == upload_id).all()
-
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["Overview", "Errors", "Warnings", "Fixed Records", "Recommendations"])
 
     with tab1:
         st.markdown('<div class="card"><div class="card-title">Data Quality Overview</div>', unsafe_allow_html=True)
-        if upload.total_rows > 0:
+        if total_rows > 0:
             import plotly.graph_objects as go
             import plotly.express as px
             
@@ -111,7 +117,7 @@ try:
                 # Pie Chart
                 fig = go.Figure(data=[go.Pie(
                     labels=['Valid Data', 'Invalid Data'], 
-                    values=[upload.valid_rows, upload.invalid_rows],
+                    values=[valid_rows, invalid_rows],
                     hole=.6,
                     marker_colors=['#10B981', '#EF4444']
                 )])
@@ -140,6 +146,8 @@ try:
                     st.plotly_chart(fig2, use_container_width=True)
                 else:
                     st.info("No errors to display.")
+        else:
+            st.info("No active dataset processed yet.")
         st.markdown('</div>', unsafe_allow_html=True)
 
     with tab2:
@@ -197,7 +205,7 @@ try:
         with c1:
             st.markdown(f"""
             <div style="text-align:center; padding:2rem 0;">
-                <div style="font-size:4rem; font-weight:800; color:{score_color};">{upload.quality_score:.0f}<span style="font-size:2rem; color:#64748B;">/100</span></div>
+                <div style="font-size:4rem; font-weight:800; color:{score_color};">{quality_score:.0f}<span style="font-size:2rem; color:#64748B;">/100</span></div>
                 <div class="kpi-label">Data Quality Score</div>
             </div>
             """, unsafe_allow_html=True)

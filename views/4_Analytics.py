@@ -53,12 +53,7 @@ try:
         invalid_records = db.query(func.coalesce(func.sum(Upload.invalid_rows), 0)).scalar()
 
     if total_records == 0:
-        st.markdown("""
-        <div class="info-callout">
-            No data yet. Upload and process a file first to see your analytics charts populate.
-        </div>
-        """, unsafe_allow_html=True)
-        st.stop()
+        st.warning("⚠️ No data uploaded yet. Showing layout template. Please upload and process a file to view actual analytics charts.")
 
     # --- Row 1: Funnel + Error Treemap ---
     r1_left, r1_right = st.columns([1, 1.5])

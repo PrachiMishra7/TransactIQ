@@ -21,20 +21,37 @@ st.markdown("""
 
 db = SessionLocal()
 try:
-    if "current_upload_id" not in st.session_state:
-        st.markdown("""
-<div class="info-callout">
-            No dataset selected. Please upload and process a file first to generate downloadable outputs.
-</div>
-        """, unsafe_allow_html=True)
-        st.stop()
+db = SessionLocal()
+try:
+    upload_id = st.session_state.get("current_upload_id")
+    upload = db.query(Upload).filter(Upload.id == upload_id).first() if upload_id else None
 
-    upload_id = st.session_state["current_upload_id"]
-    upload = db.query(Upload).filter(Upload.id == upload_id).first()
-
-    if not upload or upload.processing_status != ProcessingStatus.COMPLETED:
-        st.warning("Dataset processing is not complete. Please wait for it to finish.")
-        st.stop()
+    if not upload:
+        st.warning("⚠️ No active dataset selected. Showing layout template. Please upload and process a dataset on the 'Upload Dataset' page to generate downloads.")
+        
+        file_name = "No Active File"
+        total_rows = 0
+        valid_rows = 0
+        quality_score = 0.0
+        file_size = 0
+        invalid_rows = 0
+        cleaned_file_path = None
+        error_file_path = None
+        report_file_path = None
+    else:
+        if upload.processing_status != ProcessingStatus.COMPLETED:
+            st.warning("Dataset processing is not complete. Please wait for it to finish.")
+            st.stop()
+            
+        file_name = upload.file_name
+        total_rows = upload.total_rows
+        valid_rows = upload.valid_rows
+        quality_score = upload.quality_score
+        file_size = upload.file_size
+        invalid_rows = upload.invalid_rows
+        cleaned_file_path = upload.cleaned_file_path
+        error_file_path = upload.error_file_path
+        report_file_path = upload.report_file_path
 
     # Summary Bar
     st.markdown(f"""
@@ -43,19 +60,19 @@ try:
 <div style="display:flex; align-items:center; gap:1.5rem; flex-wrap:wrap;">
 <div>
 <div class="kpi-label">File Name</div>
-<div style="color:#1E293B; font-weight:600; font-size:0.95rem;">{upload.file_name}</div>
+<div style="color:#1E293B; font-weight:600; font-size:0.95rem;">{file_name}</div>
 </div>
 <div>
 <div class="kpi-label">Total Rows</div>
-<div style="color:#4F46E5; font-weight:700; font-size:1.1rem;">{upload.total_rows:,}</div>
+<div style="color:#4F46E5; font-weight:700; font-size:1.1rem;">{total_rows:,}</div>
 </div>
 <div>
 <div class="kpi-label">Valid Rows</div>
-<div style="color:#059669; font-weight:700; font-size:1.1rem;">{upload.valid_rows:,}</div>
+<div style="color:#059669; font-weight:700; font-size:1.1rem;">{valid_rows:,}</div>
 </div>
 <div>
 <div class="kpi-label">Quality Score</div>
-<div style="color:#D97706; font-weight:700; font-size:1.1rem;">{upload.quality_score:.0f}/100</div>
+<div style="color:#D97706; font-weight:700; font-size:1.1rem;">{quality_score:.0f}/100</div>
 </div>
 </div>
 </div>
@@ -64,16 +81,16 @@ try:
     # Visual File Info / Chunking Module
     import math
     CHUNK_SIZE = 50_000
-    file_size_display = f"{upload.file_size/1024:.1f} KB" if upload.file_size < 1024*1024 else f"{upload.file_size/1024/1024:.2f} MB"
+    file_size_display = f"{file_size/1024:.1f} KB" if file_size < 1024*1024 else f"{file_size/1024/1024:.2f} MB"
 
-    if upload.total_rows > CHUNK_SIZE:
-        chunks = math.ceil(upload.total_rows / CHUNK_SIZE)
+    if total_rows > CHUNK_SIZE:
+        chunks = math.ceil(total_rows / CHUNK_SIZE)
         st.markdown(f"""
 <div class="card" style="margin-bottom:1.5rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
 <div style="text-align:center;">
 <div style="font-size:3rem; display:flex; justify-content:center;"><span class="mi" style="font-size:3rem;">description</span></div>
 <div style="font-weight:700;">Original File</div>
-<div style="color:#4F46E5;">{file_size_display} &bull; {upload.total_rows:,} rows</div>
+<div style="color:#4F46E5;">{file_size_display} &bull; {total_rows:,} rows</div>
 </div>
 <div style="font-size:2rem; color:#64748B;">&rarr; Split &rarr;</div>
 <div style="text-align:center; background:rgba(79,70,229,0.05); border:1px solid rgba(79,70,229,0.15); border-radius:12px; padding:16px;">
@@ -94,11 +111,11 @@ try:
 <div class="card" style="margin-bottom:1.5rem; display:flex; align-items:center; gap:2rem; flex-wrap:wrap;">
 <div style="display:flex; justify-content:center;"><span class="mi" style="font-size:3rem; color:#4F46E5;">description</span></div>
 <div>
-<div style="font-weight:700; font-size:1.05rem;">{upload.file_name}</div>
-<div style="color:#64748B; font-size:0.9rem; margin-top:4px;">{file_size_display} &bull; {upload.total_rows:,} total rows &bull; {upload.valid_rows:,} valid &bull; {upload.invalid_rows:,} invalid</div>
+<div style="font-weight:700; font-size:1.05rem;">{file_name}</div>
+<div style="color:#64748B; font-size:0.9rem; margin-top:4px;">{file_size_display} &bull; {total_rows:,} total rows &bull; {valid_rows:,} valid &bull; {invalid_rows:,} invalid</div>
 <div style="margin-top:8px; display:flex; gap:8px;">
-<span style="background:#DCFCE7; color:#16A34A; padding:3px 10px; border-radius:20px; font-size:0.8rem; font-weight:600;">{upload.valid_rows} valid rows ready to download</span>
-<span style="background:#FEE2E2; color:#DC2626; padding:3px 10px; border-radius:20px; font-size:0.8rem; font-weight:600;">{upload.invalid_rows} error rows logged</span>
+<span style="background:#DCFCE7; color:#16A34A; padding:3px 10px; border-radius:20px; font-size:0.8rem; font-weight:600;">{valid_rows} valid rows ready to download</span>
+<span style="background:#FEE2E2; color:#DC2626; padding:3px 10px; border-radius:20px; font-size:0.8rem; font-weight:600;">{invalid_rows} error rows logged</span>
 </div>
 </div>
 </div>
@@ -117,7 +134,7 @@ try:
 </div>
 </div>
         """, unsafe_allow_html=True)
-        excel_path = upload.cleaned_file_path.replace(".csv", ".xlsx") if upload.cleaned_file_path else None
+        excel_path = cleaned_file_path.replace(".csv", ".xlsx") if cleaned_file_path else None
         if excel_path and os.path.exists(excel_path):
             with open(excel_path, "rb") as f:
                 st.download_button(
@@ -125,8 +142,8 @@ try:
                     f, file_name="validated_transactions.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True,
                 )
-        elif upload.cleaned_file_path and os.path.exists(upload.cleaned_file_path):
-            with open(upload.cleaned_file_path, "rb") as f:
+        elif cleaned_file_path and os.path.exists(cleaned_file_path):
+            with open(cleaned_file_path, "rb") as f:
                 st.download_button(
                     "Download Cleaned CSV (Old)",
                     f, file_name="validated_transactions.csv",
@@ -145,7 +162,7 @@ try:
 </div>
 </div>
         """, unsafe_allow_html=True)
-        err_excel_path = upload.error_file_path.replace(".csv", ".xlsx") if upload.error_file_path else None
+        err_excel_path = error_file_path.replace(".csv", ".xlsx") if error_file_path else None
         if err_excel_path and os.path.exists(err_excel_path):
             with open(err_excel_path, "rb") as f:
                 st.download_button(
@@ -153,8 +170,8 @@ try:
                     f, file_name="validation_errors.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True,
                 )
-        elif upload.error_file_path and os.path.exists(upload.error_file_path):
-            with open(upload.error_file_path, "rb") as f:
+        elif error_file_path and os.path.exists(error_file_path):
+            with open(error_file_path, "rb") as f:
                 st.download_button(
                     "Download Error Log (CSV)",
                     f, file_name="validation_errors.csv",
@@ -173,8 +190,8 @@ try:
 </div>
 </div>
         """, unsafe_allow_html=True)
-        if upload.report_file_path and os.path.exists(upload.report_file_path):
-            with open(upload.report_file_path, "rb") as f:
+        if report_file_path and os.path.exists(report_file_path):
+            with open(report_file_path, "rb") as f:
                 st.download_button(
                     "Download Summary PDF",
                     f, file_name="summary_report.pdf",

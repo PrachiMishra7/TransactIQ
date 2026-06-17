@@ -181,6 +181,8 @@ try:
 
                     st.success("Validation complete! Head to Validation Results to view the detailed error report.")
                     st.balloons()
+                    time.sleep(1.0)
+                    st.rerun()
 
     # ─────────────────────────────────────────────
     # SECTION 5: UPLOAD HISTORY & APPLIED RULES

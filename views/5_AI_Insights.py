@@ -23,32 +23,35 @@ st.markdown("""
 
 db = SessionLocal()
 try:
-    if "current_upload_id" not in st.session_state:
-        st.markdown("""
-        <div class="info-callout">
-            No dataset selected. Please upload and process a file first to unlock AI Insights.
-        </div>
-        """, unsafe_allow_html=True)
-        st.stop()
+    upload_id = st.session_state.get("current_upload_id")
+    upload = db.query(Upload).filter(Upload.id == upload_id).first() if upload_id else None
 
-    upload_id = st.session_state["current_upload_id"]
-    upload = db.query(Upload).filter(Upload.id == upload_id).first()
-
-    if not upload or upload.processing_status != ProcessingStatus.COMPLETED:
-        st.warning("Dataset processing is not complete yet.")
-        st.stop()
-
-    # Fetch all errors for this upload
-    errors = db.query(ValidationError).filter(ValidationError.upload_id == upload_id).all()
-    err_by_type = Counter(e.error_type for e in errors)
-    err_by_col  = Counter(e.column_name for e in errors)
-    total_errs  = len(errors)
-    success_rate = (upload.valid_rows / upload.total_rows * 100) if upload.total_rows > 0 else 100
-
-    # Quality Score Card
-    score = upload.quality_score
-    score_color = "#34D399" if score >= 80 else "#FCD34D" if score >= 60 else "#F87171"
-    grade = "Excellent" if score >= 90 else "Good" if score >= 80 else "Fair" if score >= 60 else "Poor"
+    if not upload:
+        st.warning("⚠️ No active dataset selected. Showing layout template. Please upload and process a file to unlock AI Insights.")
+        
+        errors = []
+        err_by_type = Counter()
+        err_by_col = Counter()
+        total_errs = 0
+        success_rate = 0.0
+        score = 0.0
+        score_color = "#94A3B8"
+        grade = "N/A"
+        file_name = "No Active File"
+    else:
+        if upload.processing_status != ProcessingStatus.COMPLETED:
+            st.warning("Dataset processing is not complete yet.")
+            st.stop()
+            
+        file_name = upload.file_name
+        errors = db.query(ValidationError).filter(ValidationError.upload_id == upload_id).all()
+        err_by_type = Counter(e.error_type for e in errors)
+        err_by_col  = Counter(e.column_name for e in errors)
+        total_errs  = len(errors)
+        success_rate = (upload.valid_rows / upload.total_rows * 100) if upload.total_rows > 0 else 100
+        score = upload.quality_score
+        score_color = "#34D399" if score >= 80 else "#FCD34D" if score >= 60 else "#F87171"
+        grade = "Excellent" if score >= 90 else "Good" if score >= 80 else "Fair" if score >= 60 else "Poor"
 
     left_col, right_col = st.columns([1, 2])
 
@@ -70,7 +73,7 @@ try:
         top_issue_text = ", ".join([f"`{c[0]}`" for c in top_issues]) if top_issues else "none detected"
         top_type_text = err_by_type.most_common(1)[0][0].replace("_"," ") if err_by_type else "none"
 
-        summary = f"""The dataset **{upload.file_name}** contains **{upload.total_rows:,} total records** with a validation pass rate of **{success_rate:.1f}%**.
+        summary = f"""The dataset **{file_name}** contains **{upload.total_rows if upload else 0:,} total records** with a validation pass rate of **{success_rate:.1f}%**.
 
 **{total_errs:,} validation issues** were detected across {len(err_by_col)} columns. The most error-prone columns are {top_issue_text}, and the most common error category is **{top_type_text}**.
 
@@ -105,7 +108,7 @@ try:
     if "messages" not in st.session_state:
         st.session_state.messages = [{
             "role": "assistant",
-            "content": f"Hello! I've analyzed `{upload.file_name}`. It scored **{score:.0f}/100** with **{total_errs:,} errors**. What would you like to know?"
+            "content": f"Hello! I've analyzed `{file_name}`. It scored **{score:.0f}/100** with **{total_errs:,} errors**. What would you like to know?"
         }]
 
     with chat_container:
@@ -141,14 +144,17 @@ try:
         elif "summar" in p or "overview" in p:
             top3 = err_by_col.most_common(3)
             breakdown = "\n".join([f"- **{c}**: {n} errors" for c, n in top3])
-            res = f"### Summary for `{upload.file_name}`\n\n- **Total Records:** {upload.total_rows:,}\n- **Valid:** {upload.valid_rows:,} ({success_rate:.1f}%)\n- **Invalid:** {upload.invalid_rows:,}\n- **Quality Score:** {score:.0f}/100\n\n**Top failing columns:**\n{breakdown}"
+            t_rows = upload.total_rows if upload else 0
+            v_rows = upload.valid_rows if upload else 0
+            i_rows = upload.invalid_rows if upload else 0
+            res = f"### Summary for `{file_name}`\n\n- **Total Records:** {t_rows:,}\n- **Valid:** {v_rows:,} ({success_rate:.1f}%)\n- **Invalid:** {i_rows:,}\n- **Quality Score:** {score:.0f}/100\n\n**Top failing columns:**\n{breakdown}"
         elif "duplicate" in p or "order" in p:
             n = sum(1 for e in errors if e.error_type == "duplicate")
             res = f"**{n} duplicate order ID errors** detected. Every order must have a unique `order_id`."
         elif "how" in p and "improv" in p:
             res = "### How to Improve\n1. **Fix phone formats** — strip spaces and ensure correct digit count per country.\n2. **Normalize dates** — convert all dates to `YYYY-MM-DD`.\n3. **Validate SKUs** — enforce the `SKU-XXXXX` pattern.\n4. **Standardize payment modes** — use a controlled vocabulary."
         else:
-            res = f"Based on my analysis of `{upload.file_name}`, the primary issues are concentrated in phone number formats and date fields. Your dataset scored **{score:.0f}/100**."
+            res = f"Based on my analysis of `{file_name}`, the primary issues are concentrated in phone number formats and date fields. Your dataset scored **{score:.0f}/100**."
 
         with chat_container:
             with st.chat_message("assistant"):

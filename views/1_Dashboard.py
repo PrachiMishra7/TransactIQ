@@ -19,23 +19,21 @@ st.markdown("<p style='color:#64748B; font-size:1.1rem; margin-top:-10px; margin
 
 db = SessionLocal()
 try:
-    if "current_upload_id" not in st.session_state:
-        st.markdown("""
-<div class="info-callout">
-No active dataset selected. Please upload and process a file to view the operational dashboard.
-</div>
-        """, unsafe_allow_html=True)
-        st.stop()
-
-    upload_id = st.session_state["current_upload_id"]
-    upload_record = db.query(Upload).filter(Upload.id == upload_id).first()
+    upload_id = st.session_state.get("current_upload_id")
+    upload_record = db.query(Upload).filter(Upload.id == upload_id).first() if upload_id else None
 
     if not upload_record:
-        st.error("Dataset not found in database.")
-        st.stop()
+        st.warning("⚠️ No active dataset selected. Showing layout template. Please upload a dataset on the 'Upload Dataset' page to view live metrics.")
 
-    # Fetch errors for the active upload
-    errors = db.query(ValidationError).filter(ValidationError.upload_id == upload_id).all()
+    # Fetch errors for the active upload if it exists
+    if upload_record:
+        errors = db.query(ValidationError).filter(ValidationError.upload_id == upload_id).all()
+        total_rows = upload_record.total_rows
+        score = upload_record.quality_score
+    else:
+        errors = []
+        total_rows = 0
+        score = 0
     
     total_errors = len([e for e in errors if e.severity in ("high", "critical")])
     total_warnings = len([e for e in errors if e.severity in ("medium", "low")])
@@ -43,7 +41,7 @@ No active dataset selected. Please upload and process a file to view the operati
     
     country_data = None
     detected_countries = 0
-    if upload_record.cleaned_file_path and os.path.exists(upload_record.cleaned_file_path):
+    if upload_record and upload_record.cleaned_file_path and os.path.exists(upload_record.cleaned_file_path):
         try:
             df_clean = pd.read_csv(upload_record.cleaned_file_path)
             country_col = None
@@ -59,7 +57,7 @@ No active dataset selected. Please upload and process a file to view the operati
         except Exception:
             pass
 
-    chunks_generated = max(1, upload_record.total_rows // 50000 + (1 if upload_record.total_rows % 50000 > 0 else 0))
+    chunks_generated = max(1, total_rows // 50000 + (1 if total_rows % 50000 > 0 else 0)) if total_rows > 0 else 0
 
     # ─────────────────────────────────────────────
     # SECTION 1: KPI GRID
@@ -77,7 +75,7 @@ No active dataset selected. Please upload and process a file to view the operati
 </div>
         """
         
-    with k1: st.markdown(metric_html("Rows Processed", f"{upload_record.total_rows:,}", '<span class="mi">description</span>', "#0F172A"), unsafe_allow_html=True)
+    with k1: st.markdown(metric_html("Rows Processed", f"{total_rows:,}", '<span class="mi">description</span>', "#0F172A"), unsafe_allow_html=True)
     with k2: st.markdown(metric_html("Errors Found", f"{total_errors:,}", '<span class="mi">warning</span>', "#DC2626"), unsafe_allow_html=True)
     with k3: st.markdown(metric_html("Warnings", f"{total_warnings:,}", '<span class="mi">report_problem</span>', "#D97706"), unsafe_allow_html=True)
     with k4: st.markdown(metric_html("Countries", f"{detected_countries}", '<span class="mi">public</span>', "#4F46E5"), unsafe_allow_html=True)
@@ -93,7 +91,7 @@ No active dataset selected. Please upload and process a file to view the operati
     with score_container:
         st.markdown('#### &#127919; Data Quality Score', unsafe_allow_html=True)
         
-        score = upload_record.quality_score
+        score = upload_record.quality_score if upload_record else 0.0
         gauge_color = "#10B981" if score >= 85 else ("#F59E0B" if score >= 60 else "#EF4444")
         
         fig_gauge = go.Figure(go.Indicator(
