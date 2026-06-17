@@ -2,7 +2,7 @@ import streamlit as st
 
 st.set_page_config(
     page_title="Xeno Data Quality Platform",
-    page_icon="📊",
+    page_icon=":material/dashboard:",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -11,6 +11,9 @@ st.set_page_config(
 from database import engine
 from models import Base
 Base.metadata.create_all(bind=engine)
+
+# Add the main app logo which automatically appears at the top of the sidebar above navigation
+st.logo("assets/logo.svg")
 
 # Define pages using the new st.navigation API (Streamlit 1.36+)
 home       = st.Page("views/Home.py", title="Home", icon=":material/home:", default=True)
@@ -27,12 +30,7 @@ from models import Upload, ProcessingStatus
 
 # Custom sidebar content
 with st.sidebar:
-    st.markdown("""
-    <div style="padding: 1rem 0; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
-        <h2 style="color: white; margin: 0; font-size: 1.8rem; letter-spacing: -0.5px; font-weight:800;">Xeno</h2>
-        <div style="color: #64748B; font-size: 0.8rem; margin-top: 4px;">Data Quality & Intelligence</div>
-    </div>
-    """, unsafe_allow_html=True)
+    # Removed hardcoded HTML title since it renders below navigation
     
     # Global Active Dataset Selector
     db = SessionLocal()

@@ -92,10 +92,10 @@ try:
     # Suggested Questions Pills
     s1, s2, s3, s4 = st.columns(4)
     suggestion = None
-    if s1.button("📊 Summarize errors", use_container_width=True): suggestion = "Summarize the errors"
-    if s2.button("📞 Why did phones fail?", use_container_width=True): suggestion = "Why did phones fail?"
-    if s3.button("📅 Date issues?", use_container_width=True): suggestion = "What are the date issues?"
-    if s4.button("💡 How to improve?", use_container_width=True): suggestion = "How can I improve?"
+    if s1.button(":material/dashboard: Summarize errors", use_container_width=True): suggestion = "Summarize the errors"
+    if s2.button(":material/call: Why did phones fail?", use_container_width=True): suggestion = "Why did phones fail?"
+    if s3.button(":material/calendar_month: Date issues?", use_container_width=True): suggestion = "What are the date issues?"
+    if s4.button(":material/lightbulb: How to improve?", use_container_width=True): suggestion = "How can I improve?"
 
     st.markdown("<br>", unsafe_allow_html=True)
 

@@ -38,6 +38,7 @@ class Upload(Base):
     quality_score = Column(Float, default=0.0)
     processing_status = Column(SAEnum(ProcessingStatus), default=ProcessingStatus.PENDING)
     rule_version_id = Column(String, nullable=True)
+    validation_settings = Column(JSON, nullable=True)
     cleaned_file_path = Column(String, nullable=True)
     error_file_path = Column(String, nullable=True)
     report_file_path = Column(String, nullable=True)

@@ -13,7 +13,7 @@ with open(css_path) as f:
 
 st.markdown("""
 <div class="section-header">
-    <div class="section-icon">&#9881;</div>
+    <div class="section-icon"><span class="mi">settings</span></div>
     <h2>Platform Settings</h2>
 </div>
 <p style="color:#64748B; margin-bottom:1.5rem; font-size:1.05rem;">

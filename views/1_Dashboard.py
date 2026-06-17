@@ -14,7 +14,7 @@ css_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "s
 with open(css_path) as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-st.title("📊 Operational Dashboard")
+st.title(":material/dashboard: Operational Dashboard")
 st.markdown("<p style='color:#64748B; font-size:1.1rem; margin-top:-10px; margin-bottom:2rem;'>Real-time insights across your active datasets</p>", unsafe_allow_html=True)
 
 db = SessionLocal()
@@ -41,9 +41,24 @@ No active dataset selected. Please upload and process a file to view the operati
     total_warnings = len([e for e in errors if e.severity in ("medium", "low")])
     duplicate_orders = len([e for e in errors if e.error_type == "duplicate"])
     
-    # Estimate countries from errors (just a rough metric for the dashboard if raw data isn't easily grouped)
-    # Ideally we'd group by country, but we can fake it or use a default if it's a sample.
-    detected_countries = 2 if upload_record.total_rows < 1000 else 12 
+    country_data = None
+    detected_countries = 0
+    if upload_record.cleaned_file_path and os.path.exists(upload_record.cleaned_file_path):
+        try:
+            df_clean = pd.read_csv(upload_record.cleaned_file_path)
+            country_col = None
+            for col in df_clean.columns:
+                if col.lower() in ["country", "country_name", "shipping_country"]:
+                    country_col = col
+                    break
+            
+            if country_col:
+                country_data = df_clean[country_col].value_counts().reset_index()
+                country_data.columns = ["Country", "Transactions"]
+                detected_countries = len(country_data)
+        except Exception:
+            pass
+
     chunks_generated = max(1, upload_record.total_rows // 50000 + (1 if upload_record.total_rows % 50000 > 0 else 0))
 
     # ─────────────────────────────────────────────
@@ -62,70 +77,70 @@ No active dataset selected. Please upload and process a file to view the operati
 </div>
         """
         
-    with k1: st.markdown(metric_html("Rows Processed", f"{upload_record.total_rows:,}", "📄", "#0F172A"), unsafe_allow_html=True)
-    with k2: st.markdown(metric_html("Errors Found", f"{total_errors:,}", "🚨", "#DC2626"), unsafe_allow_html=True)
-    with k3: st.markdown(metric_html("Warnings", f"{total_warnings:,}", "⚠️", "#D97706"), unsafe_allow_html=True)
-    with k4: st.markdown(metric_html("Countries", f"{detected_countries}", "🌍", "#4F46E5"), unsafe_allow_html=True)
-    with k5: st.markdown(metric_html("Duplicates", f"{duplicate_orders:,}", "👯", "#E11D48"), unsafe_allow_html=True)
-    with k6: st.markdown(metric_html("Chunks", f"{chunks_generated}", "📦", "#059669"), unsafe_allow_html=True)
+    with k1: st.markdown(metric_html("Rows Processed", f"{upload_record.total_rows:,}", '<span class="mi">description</span>', "#0F172A"), unsafe_allow_html=True)
+    with k2: st.markdown(metric_html("Errors Found", f"{total_errors:,}", '<span class="mi">warning</span>', "#DC2626"), unsafe_allow_html=True)
+    with k3: st.markdown(metric_html("Warnings", f"{total_warnings:,}", '<span class="mi">report_problem</span>', "#D97706"), unsafe_allow_html=True)
+    with k4: st.markdown(metric_html("Countries", f"{detected_countries}", '<span class="mi">public</span>', "#4F46E5"), unsafe_allow_html=True)
+    with k5: st.markdown(metric_html("Duplicates", f"{duplicate_orders:,}", '<span class="mi">content_copy</span>', "#E11D48"), unsafe_allow_html=True)
+    with k6: st.markdown(metric_html("Chunks", f"{chunks_generated}", '<span class="mi">view_in_ar</span>', "#059669"), unsafe_allow_html=True)
     
     st.markdown("<br>", unsafe_allow_html=True)
 
     # ─────────────────────────────────────────────
     # SECTION 2: QUALITY SCORE GAUGE
     # ─────────────────────────────────────────────
-    st.markdown("""<div class="card"><div class="card-title">&#127919; Data Quality Score</div>""", unsafe_allow_html=True)
-    
-    score = upload_record.quality_score
-    gauge_color = "#10B981" if score >= 85 else ("#F59E0B" if score >= 60 else "#EF4444")
-    
-    fig_gauge = go.Figure(go.Indicator(
-        mode = "gauge+number",
-        value = score,
-        domain = {'x': [0, 1], 'y': [0, 1]},
-        title = {'text': "Overall Health", 'font': {'size': 18, 'color': '#475569'}},
-        number = {'font': {'size': 50, 'color': gauge_color}},
-        gauge = {
-            'axis': {'range': [None, 100], 'tickwidth': 1, 'tickcolor': "#CBD5E1"},
-            'bar': {'color': gauge_color},
-            'bgcolor': "white",
-            'borderwidth': 2,
-            'bordercolor': "rgba(0,0,0,0)",
-            'steps': [
-                {'range': [0, 60], 'color': 'rgba(239, 68, 68, 0.1)'},
-                {'range': [60, 85], 'color': 'rgba(245, 158, 11, 0.1)'},
-                {'range': [85, 100], 'color': 'rgba(16, 185, 129, 0.1)'}
-            ],
-            'threshold': {
-                'line': {'color': "red", 'width': 4},
-                'thickness': 0.75,
-                'value': 90
+    score_container = st.container(border=True)
+    with score_container:
+        st.markdown('#### &#127919; Data Quality Score', unsafe_allow_html=True)
+        
+        score = upload_record.quality_score
+        gauge_color = "#10B981" if score >= 85 else ("#F59E0B" if score >= 60 else "#EF4444")
+        
+        fig_gauge = go.Figure(go.Indicator(
+            mode = "gauge+number",
+            value = score,
+            domain = {'x': [0, 1], 'y': [0, 1]},
+            title = {'text': "Overall Health", 'font': {'size': 16, 'color': '#475569'}},
+            number = {'font': {'size': 40, 'color': gauge_color}},
+            gauge = {
+                'axis': {'range': [None, 100], 'tickwidth': 1, 'tickcolor': "#CBD5E1"},
+                'bar': {'color': gauge_color},
+                'bgcolor': "white",
+                'borderwidth': 2,
+                'bordercolor': "rgba(0,0,0,0)",
+                'steps': [
+                    {'range': [0, 60], 'color': 'rgba(239, 68, 68, 0.1)'},
+                    {'range': [60, 85], 'color': 'rgba(245, 158, 11, 0.1)'},
+                    {'range': [85, 100], 'color': 'rgba(16, 185, 129, 0.1)'}
+                ],
+                'threshold': {
+                    'line': {'color': "red", 'width': 4},
+                    'thickness': 0.75,
+                    'value': 90
+                }
             }
-        }
-    ))
-    fig_gauge.update_layout(height=300, margin=dict(l=20, r=20, t=50, b=20), paper_bgcolor="rgba(0,0,0,0)", font={'family': "Inter"})
-    
-    g1, g2 = st.columns([2, 1])
-    with g1:
-        st.plotly_chart(fig_gauge, use_container_width=True)
-    with g2:
-        st.markdown("<div style='margin-top:40px;'></div>", unsafe_allow_html=True)
-        # Category breakdown bars
-        categories = {"Phone Accuracy": 98, "Date Accuracy": 85, "Schema Integrity": 100, "Completeness": 92}
-        for cat, val in categories.items():
-            color = "#10B981" if val >= 90 else ("#F59E0B" if val >= 70 else "#EF4444")
-            st.markdown(f"""
-<div style="margin-bottom:16px;">
-<div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:0.85rem; font-weight:600; color:#475569;">
-<span>{cat}</span><span>{val}%</span>
-</div>
-<div style="width:100%; height:8px; background:#F1F5F9; border-radius:4px; overflow:hidden;">
-<div style="width:{val}%; height:100%; background:{color}; border-radius:4px;"></div>
-</div>
-</div>
-            """, unsafe_allow_html=True)
-            
-    st.markdown("</div>", unsafe_allow_html=True)
+        ))
+        fig_gauge.update_layout(height=240, margin=dict(l=10, r=10, t=30, b=10), paper_bgcolor="rgba(0,0,0,0)", font={'family': "Inter"})
+        
+        g1, g2 = st.columns([2, 1])
+        with g1:
+            st.plotly_chart(fig_gauge, use_container_width=True)
+        with g2:
+            st.markdown("<div style='margin-top:20px;'></div>", unsafe_allow_html=True)
+            # Category breakdown bars
+            categories = {"Phone Accuracy": 98, "Date Accuracy": 85, "Schema Integrity": 100, "Completeness": 92}
+            for cat, val in categories.items():
+                color = "#10B981" if val >= 90 else ("#F59E0B" if val >= 70 else "#EF4444")
+                st.markdown(f"""
+    <div style="margin-bottom:16px;">
+    <div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:0.85rem; font-weight:600; color:#475569;">
+    <span>{cat}</span><span>{val}%</span>
+    </div>
+    <div style="width:100%; height:8px; background:#F1F5F9; border-radius:4px; overflow:hidden;">
+    <div style="width:{val}%; height:100%; background:{color}; border-radius:4px;"></div>
+    </div>
+    </div>
+                """, unsafe_allow_html=True)
 
     # ─────────────────────────────────────────────
     # SECTION 3: DISTRIBUTION CHARTS
@@ -133,34 +148,31 @@ No active dataset selected. Please upload and process a file to view the operati
     c1, c2 = st.columns(2)
     
     with c1:
-        st.markdown("""<div class="card"><div class="card-title">&#128202; Error Distribution</div>""", unsafe_allow_html=True)
-        if errors:
-            df_err = pd.DataFrame([e.error_type for e in errors], columns=["Type"])
-            counts = df_err["Type"].value_counts().reset_index()
-            counts.columns = ["Error Type", "Count"]
-            fig_pie = px.pie(counts, values="Count", names="Error Type", hole=0.6, 
-                             color_discrete_sequence=px.colors.qualitative.Pastel)
-            fig_pie.update_layout(showlegend=True, height=350, margin=dict(l=0, r=0, t=30, b=0), paper_bgcolor="rgba(0,0,0,0)")
-            st.plotly_chart(fig_pie, use_container_width=True)
-        else:
-            st.info("No errors found in this dataset!")
-        st.markdown("</div>", unsafe_allow_html=True)
+        dist1 = st.container(border=True)
+        with dist1:
+            st.markdown('#### <span class="mi">analytics</span> Error Distribution', unsafe_allow_html=True)
+            if errors:
+                df_err = pd.DataFrame([e.error_type for e in errors], columns=["Type"])
+                counts = df_err["Type"].value_counts().reset_index()
+                counts.columns = ["Error Type", "Count"]
+                fig_pie = px.pie(counts, values="Count", names="Error Type", hole=0.6, 
+                                 color_discrete_sequence=px.colors.qualitative.Pastel)
+                fig_pie.update_layout(showlegend=True, height=300, margin=dict(l=0, r=0, t=10, b=0), paper_bgcolor="rgba(0,0,0,0)")
+                st.plotly_chart(fig_pie, use_container_width=True)
+            else:
+                st.info("No errors found in this dataset!")
         
     with c2:
-        st.markdown("""<div class="card"><div class="card-title">&#127758; Country Distribution</div>""", unsafe_allow_html=True)
-        # Using a dummy distribution for the visual since country parsing isn't saved in a separate table
-        # In a real app we'd group the main table, but we don't have direct access to the CSV here easily without re-reading
-        country_data = pd.DataFrame({
-            "Country": ["India", "Singapore", "USA", "UK", "Australia"],
-            "Transactions": [int(upload_record.total_rows * 0.45), int(upload_record.total_rows * 0.25), 
-                             int(upload_record.total_rows * 0.15), int(upload_record.total_rows * 0.10), 
-                             int(upload_record.total_rows * 0.05)]
-        })
-        fig_bar = px.bar(country_data, x="Country", y="Transactions", color="Country", 
-                         color_discrete_sequence=px.colors.qualitative.Set2)
-        fig_bar.update_layout(showlegend=False, height=350, margin=dict(l=0, r=0, t=30, b=0), paper_bgcolor="rgba(0,0,0,0)")
-        st.plotly_chart(fig_bar, use_container_width=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+        dist2 = st.container(border=True)
+        with dist2:
+            st.markdown('#### <span class="mi">public</span> Country Distribution', unsafe_allow_html=True)
+            if country_data is not None and not country_data.empty:
+                fig_bar = px.bar(country_data, x="Country", y="Transactions", color="Country", 
+                                 color_discrete_sequence=px.colors.qualitative.Set2)
+                fig_bar.update_layout(showlegend=False, height=300, margin=dict(l=0, r=0, t=10, b=0), paper_bgcolor="rgba(0,0,0,0)")
+                st.plotly_chart(fig_bar, use_container_width=True)
+            else:
+                st.info("No 'country' column detected in the dataset or still processing.")
 
 finally:
     db.close()

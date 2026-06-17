@@ -75,6 +75,9 @@ def validate_phone(value: str, row: int, country_rules: list[dict], country: str
         expected_len = int(rule.get("phone_length", rule.get("rule_value", "10")))
         if code and cleaned.startswith(code) and len(cleaned) > expected_len:
             cleaned = cleaned[len(code):]
+        # Also handle numbers starting with 0
+        if cleaned.startswith("0") and len(cleaned) > expected_len:
+            cleaned = cleaned[1:]
 
     if not cleaned.isdigit():
         errors.append(ValidationResult(row, column, "high", "Phone number must be numeric only", "format_error"))

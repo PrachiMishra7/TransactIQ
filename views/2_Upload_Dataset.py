@@ -20,7 +20,7 @@ with open(css_path) as f:
 
 st.markdown("""
 <div class="section-header">
-    <div class="section-icon">&#8679;</div>
+    <div class="section-icon"><span class="mi">upload</span></div>
     <h2>Upload Dataset</h2>
 </div>
 <p style="color:#64748B; margin-bottom:1.5rem; font-size:1.05rem;">
@@ -128,7 +128,7 @@ try:
             # SECTION 4: VALIDATION SETTINGS
             # ─────────────────────────────────────────────
             st.markdown('<div class="card" style="height:100%;">', unsafe_allow_html=True)
-            st.markdown('<div class="card-title">&#9881; Validation Settings</div>', unsafe_allow_html=True)
+            st.markdown('<div class="card-title"><span class="mi">settings</span> Validation Settings</div>', unsafe_allow_html=True)
             
             val_phone = st.toggle("Phone Validation", value=True)
             val_date = st.toggle("Date Validation", value=True)
@@ -141,7 +141,7 @@ try:
             if st.button("Process & Validate Dataset", type="primary", use_container_width=True):
                 import time
                 with st.status("Initializing Xeno Pipeline...", expanded=True) as status:
-                    st.write("🧠 AI Validating Schema & Orders...")
+                    st.write(":material/psychology: AI Validating Schema & Orders...")
                     time.sleep(0.5)
                     
                     upload_id = str(uuid.uuid4())
@@ -153,31 +153,101 @@ try:
                     with open(file_path, "wb") as f:
                         f.write(uploaded_file.getvalue())
 
+                    settings_dict = {
+                        "phone": val_phone,
+                        "date": val_date,
+                        "duplicate": val_dup,
+                        "payment": val_pay
+                    }
+
                     upload = Upload(
                         id=upload_id,
                         file_name=file_name,
                         file_size=file_size,
                         processing_status=ProcessingStatus.UPLOADING,
+                        validation_settings=settings_dict
                     )
                     db.add(upload)
                     db.commit()
 
-                    if val_phone: st.write("📞 Checking Phone Numbers & Country Formats...")
+                    if val_phone: st.write(":material/call: Checking Phone Numbers & Country Formats...")
                     time.sleep(0.5)
-                    if val_date: st.write("📅 Verifying Dates & Data Integrity...")
+                    if val_date: st.write(":material/calendar_month: Verifying Dates & Data Integrity...")
                     time.sleep(0.5)
-                    if val_chunk: st.write("⚡ Executing chunked processing...")
                     
-                    asyncio.run(process_upload(db, upload_id, file_path, user_mapping=user_mapping))
+                    asyncio.run(process_upload(db, upload_id, file_path, user_mapping=user_mapping, validation_settings=settings_dict))
                     st.session_state["current_upload_id"] = upload_id
                     
-                    st.write("📦 Preparing Output Reports...")
+                    st.write(":material/view_in_ar: Preparing Output Reports...")
                     time.sleep(0.5)
                     status.update(label="Processing Complete!", state="complete", expanded=False)
 
                 st.success("Validation complete! Head to Validation Results to view the detailed error report.")
                 st.balloons()
             st.markdown('</div>', unsafe_allow_html=True)
+
+    # ─────────────────────────────────────────────
+    # SECTION 5: UPLOAD HISTORY & APPLIED RULES
+    # ─────────────────────────────────────────────
+    st.markdown("<br><hr class='divider'>", unsafe_allow_html=True)
+    st.markdown("### :material/history: Upload History & Applied Rules")
+    
+    past_uploads = db.query(Upload).order_by(Upload.created_at.desc()).limit(10).all()
+    if past_uploads:
+            html_table = """
+<style>
+.history-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
+.history-table th { background: #F8FAFC; padding: 12px 16px; text-align: left; font-weight: 600; color: #475569; border-bottom: 2px solid #E2E8F0; }
+.history-table td { padding: 12px 16px; border-bottom: 1px solid #E2E8F0; color: #1E293B; vertical-align: middle; }
+.history-table tr:hover { background: #F1F5F9; }
+.val-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: #F1F5F9; border: 1px solid #CBD5E1; border-radius: 99px; font-size: 0.75rem; font-weight: 600; color: #475569; margin-right: 6px; margin-bottom: 4px; }
+.val-badge .mi { font-size: 14px; }
+.status-badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
+.status-completed { background: #ECFDF5; color: #059669; border: 1px solid #A7F3D0; }
+.status-pending { background: #FFFBEB; color: #D97706; border: 1px solid #FDE68A; }
+.status-error { background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; }
+</style>
+<table class="history-table">
+<thead>
+    <tr>
+        <th>File Name</th>
+        <th>Uploaded At</th>
+        <th>Total Rows</th>
+        <th>Applied Validations</th>
+        <th>Score</th>
+        <th>Status</th>
+    </tr>
+</thead>
+<tbody>
+"""
+            
+            for u in past_uploads:
+                vs = u.validation_settings or {}
+                badges_html = ""
+                if vs.get("phone"): badges_html += '<span class="val-badge"><span class="mi">call</span>Phone</span>'
+                if vs.get("date"): badges_html += '<span class="val-badge"><span class="mi">calendar_month</span>Date</span>'
+                if vs.get("duplicate"): badges_html += '<span class="val-badge"><span class="mi">content_copy</span>Duplicate</span>'
+                if vs.get("payment"): badges_html += '<span class="val-badge"><span class="mi">credit_card</span>Payment</span>'
+                
+                if not badges_html:
+                    badges_html = '<span style="color:#94A3B8; font-style:italic;">None (Raw)</span>'
+
+                status_class = "status-completed" if u.processing_status.value == "completed" else ("status-error" if "error" in u.processing_status.value else "status-pending")
+                
+                html_table += f"""
+<tr>
+    <td style="font-weight:500;">{u.file_name}</td>
+    <td style="color:#64748B;">{u.created_at.strftime('%b %d, %H:%M')}</td>
+    <td>{u.total_rows:,}</td>
+    <td>{badges_html}</td>
+    <td><strong style="color:#0F172A;">{u.quality_score:.0f}</strong><span style="color:#94A3B8;">/100</span></td>
+    <td><span class="status-badge {status_class}">{u.processing_status.value.title()}</span></td>
+</tr>
+"""
+            html_table += "</tbody></table>"
+            st.markdown(html_table, unsafe_allow_html=True)
+    else:
+        st.info("No upload history found.")
 
 finally:
     db.close()

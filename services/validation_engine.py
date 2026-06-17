@@ -83,11 +83,14 @@ def get_cell(row: pd.Series, *names: str):
     return ""
 
 
-def run_validation(df: pd.DataFrame, phone_rules: list[dict], user_mapping: dict | None = None) -> tuple[list[dict], pd.DataFrame]:
+def run_validation(df: pd.DataFrame, phone_rules: list[dict], user_mapping: dict | None = None, validation_settings: dict | None = None) -> tuple[list[dict], pd.DataFrame]:
     """Validate dataframe and return errors + cleaned dataframe."""
     errors: list[dict] = []
     seen_order_ids: set[str] = set()
     seen_txn_ids: set[str] = set()
+
+    if validation_settings is None:
+        validation_settings = {"phone": True, "date": True, "duplicate": True, "payment": True}
 
     if user_mapping:
         mapping = {k: v for k, v in user_mapping.items() if v and v != "(Ignore)"}
@@ -110,30 +113,34 @@ def run_validation(df: pd.DataFrame, phone_rules: list[dict], user_mapping: dict
         email_errors = validate_email(get_cell(row, "email"), row_num)
         errors.extend([e.to_dict() for e in email_errors])
 
-        phone_errors = validate_phone(
-            get_cell(row, "phone"), row_num, phone_rules,
-            country=str(get_cell(row, "country")),
-        )
-        errors.extend([e.to_dict() for e in phone_errors])
+        if validation_settings.get("phone", True):
+            phone_errors = validate_phone(
+                get_cell(row, "phone"), row_num, phone_rules,
+                country=str(get_cell(row, "country")),
+            )
+            errors.extend([e.to_dict() for e in phone_errors])
 
-        for date_col in ["order_date", "delivery_date"]:
-            if date_col in df.columns:
-                date_errors = validate_date(get_cell(row, date_col), row_num, date_col, allow_future=(date_col == "delivery_date"))
-                errors.extend([e.to_dict() for e in date_errors])
+        if validation_settings.get("date", True):
+            for date_col in ["order_date", "delivery_date"]:
+                if date_col in df.columns:
+                    date_errors = validate_date(get_cell(row, date_col), row_num, date_col, allow_future=(date_col == "delivery_date"))
+                    errors.extend([e.to_dict() for e in date_errors])
 
         if "time" in df.columns:
             time_errors = validate_time(get_cell(row, "time"), row_num)
             errors.extend([e.to_dict() for e in time_errors])
 
-        payment_errors = validate_payment(get_cell(row, "payment_method"), get_cell(row, "transaction_id"), row_num)
-        errors.extend([e.to_dict() for e in payment_errors])
+        if validation_settings.get("payment", True):
+            payment_errors = validate_payment(get_cell(row, "payment_method"), get_cell(row, "transaction_id"), row_num)
+            errors.extend([e.to_dict() for e in payment_errors])
 
-        txn = str(get_cell(row, "transaction_id")).strip()
-        if txn and txn.lower() != "nan":
-            if txn in seen_txn_ids:
-                errors.append(ValidationResult(row_num, "transaction_id", "high", f"Duplicate transaction ID: {txn}", "duplicate").to_dict())
-            else:
-                seen_txn_ids.add(txn)
+        if validation_settings.get("duplicate", True):
+            txn = str(get_cell(row, "transaction_id")).strip()
+            if txn and txn.lower() != "nan":
+                if txn in seen_txn_ids:
+                    errors.append(ValidationResult(row_num, "transaction_id", "high", f"Duplicate transaction ID: {txn}", "duplicate").to_dict())
+                else:
+                    seen_txn_ids.add(txn)
 
         if any(c in df.columns for c in ["sku", "quantity", "unit_price", "total_price", "product_name"]):
             product_errors = validate_product(
@@ -161,8 +168,8 @@ def compute_quality_score(total_rows: int, errors: list[dict], duplicate_count: 
     completeness = max(0, 100 - (missing_value_rows / max(total_rows, 1)) * 100)
     accuracy = max(0, 100 - (high_error_rows / max(total_rows, 1)) * 100)
     
-    dup_penalty = min(100, (duplicate_count / max(total_rows, 1)) * 100)
-    duplicates = max(0, 100 - dup_penalty * 100)  # duplicates heavily penalized, but bounded
+    dup_penalty = (duplicate_count / max(total_rows, 1)) * 100
+    duplicates = max(0, 100 - dup_penalty * 1.5)  # 1.5x penalty for duplicates
     
     formatting = max(0, 100 - (format_error_rows / max(total_rows, 1)) * 100)
 

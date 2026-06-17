@@ -69,13 +69,13 @@ try:
     st.markdown(f"""
 <div class="card" style="margin-bottom:1.5rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
 <div style="text-align:center;">
-<div style="font-size:3rem;">📄</div>
+<div style="font-size:3rem;">:material/description:</div>
 <div style="font-weight:700;">Original File</div>
 <div style="color:#4F46E5;">{file_size_display}</div>
 </div>
 <div style="font-size:2rem; color:#64748B;">&rarr; Split &rarr;</div>
 <div style="text-align:center; background:rgba(79,70,229,0.05); border:1px solid rgba(79,70,229,0.15); border-radius:12px; padding:16px;">
-<div style="font-size:1.5rem; margin-bottom:8px;">📦 Chunked Output</div>
+<div style="font-size:1.5rem; margin-bottom:8px;">:material/view_in_ar: Chunked Output</div>
 <div style="display:flex; flex-direction:column; gap:4px; font-family:monospace; color:#4F46E5; font-size:0.9rem;">
 {'<br>'.join([f"Chunk_{i+1}.csv" for i in range(min(chunks, 4))])}
 {f"<br>... and {chunks-4} more" if chunks > 4 else ""}

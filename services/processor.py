@@ -66,7 +66,7 @@ def parse_file(file_path: str) -> pd.DataFrame:
     return pd.read_csv(file_path)
 
 
-async def process_upload(db: Session, upload_id: str, file_path: str, user_mapping: dict | None = None):
+async def process_upload(db: Session, upload_id: str, file_path: str, user_mapping: dict | None = None, validation_settings: dict | None = None):
     upload = db.query(Upload).filter(Upload.id == upload_id).first()
     if not upload:
         return
@@ -98,13 +98,13 @@ async def process_upload(db: Session, upload_id: str, file_path: str, user_mappi
         if ext == ".csv" and total_rows > 0:
             CHUNK_SIZE = 50000
             for chunk in pd.read_csv(file_path, chunksize=CHUNK_SIZE):
-                chunk_errors, chunk_cleaned = run_validation(chunk, phone_rules, user_mapping=user_mapping)
+                chunk_errors, chunk_cleaned = run_validation(chunk, phone_rules, user_mapping=user_mapping, validation_settings=validation_settings)
                 errors.extend(chunk_errors)
                 cleaned_dfs.append(chunk_cleaned)
             cleaned_df = pd.concat(cleaned_dfs, ignore_index=True) if cleaned_dfs else pd.DataFrame()
         else:
             if total_rows > 0:
-                errors, cleaned_df = run_validation(df_full, phone_rules, user_mapping=user_mapping)
+                errors, cleaned_df = run_validation(df_full, phone_rules, user_mapping=user_mapping, validation_settings=validation_settings)
             else:
                 cleaned_df = pd.DataFrame()
 

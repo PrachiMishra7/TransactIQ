@@ -14,7 +14,7 @@ with open(css_path) as f:
 
 st.markdown("""
 <div class="section-header">
-    <div class="section-icon">&#9998;</div>
+    <div class="section-icon"><span class="mi">rule</span></div>
     <h2>Validation Results</h2>
 </div>
 """, unsafe_allow_html=True)
