@@ -66,11 +66,15 @@ try:
 
         file_size_display = f"{file_size/1024:.1f} KB" if file_size < 1024*1024 else f"{file_size/1024/1024:.2f} MB"
         
+        # Estimate rows assuming roughly 100-150 bytes per row, formatted nicely
+        est_rows = max(1, file_size // 120)
+        est_rows_display = f"~{est_rows:,}"
+        
         st.markdown(f"""
         <div style="display:flex; justify-content:space-between; align-items:center; background:#EEF2FF; border:1px solid #C7D2FE; border-radius:12px; padding:16px; margin-bottom:24px;">
             <div><span style="color:#4F46E5; font-weight:700;">File:</span> {file_name}</div>
             <div><span style="color:#4F46E5; font-weight:700;">Size:</span> {file_size_display}</div>
-            <div><span style="color:#4F46E5; font-weight:700;">Est. Rows:</span> {'10,000+' if file_size > 1000000 else 'Unknown'}</div>
+            <div><span style="color:#4F46E5; font-weight:700;">Est. Rows:</span> {est_rows_display}</div>
         </div>
         """, unsafe_allow_html=True)
 
