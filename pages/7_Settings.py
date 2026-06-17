@@ -6,18 +6,18 @@ import pandas as pd
 from database import SessionLocal
 from models import ValidationRule
 
-st.set_page_config(page_title="Settings | TransactIQ", page_icon="⚙️", layout="wide")
+st.set_page_config(page_title="Settings | TransactIQ", layout="wide")
 
 css_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "style.css")
 with open(css_path) as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-st.title("⚙️ Validation Settings")
+st.title("Validation Settings")
 
 db = SessionLocal()
 try:
     st.markdown('<div class="saas-card" style="margin-bottom: 2rem;">', unsafe_allow_html=True)
-    st.subheader("➕ Add New Rule")
+    st.subheader("Add New Rule")
     with st.form("new_rule_form"):
         c1, c2 = st.columns(2)
         country_name    = c1.text_input("Country Name (e.g., India, Global)")

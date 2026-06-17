@@ -4,13 +4,13 @@ import streamlit as st
 from database import SessionLocal
 from models import Upload, ProcessingStatus
 
-st.set_page_config(page_title="Download Center | TransactIQ", page_icon="📥", layout="wide")
+st.set_page_config(page_title="Download Center | TransactIQ", layout="wide")
 
 css_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "style.css")
 with open(css_path) as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-st.title("📥 Download Center")
+st.title("Download Center")
 
 db = SessionLocal()
 try:

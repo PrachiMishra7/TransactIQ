@@ -10,13 +10,13 @@ from models import Upload, ProcessingStatus
 from services.processor import process_upload
 from services.column_mapper import map_columns, COLUMN_ALIASES
 
-st.set_page_config(page_title="Upload Dataset | TransactIQ", page_icon="📤", layout="wide")
+st.set_page_config(page_title="Upload Dataset | TransactIQ", layout="wide")
 
 css_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "style.css")
 with open(css_path) as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-st.title("📤 Upload Dataset")
+st.title("Upload Dataset")
 st.markdown("Upload a CSV or XLSX file for validation and cleaning.")
 
 _APP_DIR = os.path.join(os.path.expanduser("~"), "AppData", "Local", "TransactIQ")
@@ -61,7 +61,7 @@ try:
         </div>
         """, unsafe_allow_html=True)
 
-        st.markdown("### 🛠️ Schema Mapping")
+        st.markdown("### Schema Mapping")
         st.write("We automatically detected your columns. Review or change them before processing.")
 
         auto_mapped = map_columns(headers)

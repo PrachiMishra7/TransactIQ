@@ -5,13 +5,13 @@ import pandas as pd
 from database import SessionLocal
 from models import Upload, Report, ValidationError, ProcessingStatus
 
-st.set_page_config(page_title="AI Insights | TransactIQ", page_icon="🤖", layout="wide")
+st.set_page_config(page_title="AI Insights | TransactIQ", layout="wide")
 
 css_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "style.css")
 with open(css_path) as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-st.title("🤖 AI Insights")
+st.title("AI Insights")
 
 db = SessionLocal()
 try:
@@ -35,11 +35,11 @@ try:
         
         if report and report.summary:
             st.markdown('<div class="saas-card">', unsafe_allow_html=True)
-            st.markdown("### 📝 AI Summary")
+            st.markdown("### AI Summary")
             st.write(report.summary)
             st.markdown('</div>', unsafe_allow_html=True)
             
-        st.markdown("<br>### 🔍 Error Explanation Engine", unsafe_allow_html=True)
+        st.markdown("<br>### Error Explanation Engine", unsafe_allow_html=True)
         errors = db.query(ValidationError).filter(ValidationError.upload_id == upload_id).limit(10).all()
         if errors:
             selected_error = st.selectbox(

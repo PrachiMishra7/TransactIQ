@@ -5,13 +5,13 @@ import pandas as pd
 from database import SessionLocal
 from models import Upload, ValidationError, ProcessingStatus
 
-st.set_page_config(page_title="Validation Results | TransactIQ", page_icon="📋", layout="wide")
+st.set_page_config(page_title="Validation Results | TransactIQ", layout="wide")
 
 css_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "style.css")
 with open(css_path) as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-st.title("📋 Validation Results")
+st.title("Validation Results")
 
 db = SessionLocal()
 try:
@@ -31,7 +31,7 @@ try:
         c3.markdown(f'<div class="saas-card"><div class="metric-label">Invalid Records</div><div class="metric-value" style="color:#EF4444;">{upload.invalid_rows}</div></div>', unsafe_allow_html=True)
         
         st.markdown("<br>", unsafe_allow_html=True)
-        st.subheader("⚠️ Errors Breakdown")
+        st.subheader("Errors Breakdown")
         errors = db.query(ValidationError).filter(ValidationError.upload_id == upload_id).limit(500).all()
         if errors:
             df_err = pd.DataFrame([{

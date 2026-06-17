@@ -1,7 +1,7 @@
 import os
 import streamlit as st
 
-st.set_page_config(page_title="TransactIQ - Global Transaction Validation", page_icon="⚡", layout="wide")
+st.set_page_config(page_title="TransactIQ - Global Transaction Validation", layout="wide")
 
 # Load CSS
 css_path = os.path.join(os.path.dirname(__file__), "assets", "style.css")
@@ -26,17 +26,37 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-st.markdown("### Welcome to TransactIQ")
-st.write("Use the sidebar to navigate through the platform features.")
-st.write("""
-- **Dashboard**: View high-level metrics and dataset health.
-- **Upload Dataset**: Drag-and-drop file upload with schema detection and chunk processing.
-- **Validation Results**: Dive into specific row-level errors.
-- **Analytics**: Interactive Plotly charts showing error distribution.
-- **AI Insights**: Automated dataset scoring and natural language error explanations.
-- **Downloads**: Download validated datasets and reports.
-- **Settings**: Manage validation rules (e.g. Country codes, Phone lengths).
-""")
+st.markdown("### Platform Capabilities")
+st.markdown("Use the sidebar to navigate through the platform features.")
+
+st.markdown("""
+<div class="feature-grid">
+    <div class="saas-card">
+        <h3 style="margin-top: 0;">1. Intelligent Upload</h3>
+        <p style="color: #94A3B8;">Drag and drop CSV or Excel files. Our system automatically detects your schema and allows manual overrides before processing.</p>
+    </div>
+    <div class="saas-card">
+        <h3 style="margin-top: 0;">2. Chunk Processing</h3>
+        <p style="color: #94A3B8;">Built for scale. Files exceeding 100,000+ rows are split into sequential 50k chunks via Pandas to ensure zero memory crashes.</p>
+    </div>
+    <div class="saas-card">
+        <h3 style="margin-top: 0;">3. Rules Engine</h3>
+        <p style="color: #94A3B8;">Strict validations for Product SKUs, dynamic Country Phone Codes, Dates, and Payment Allow-lists based on customizable rules.</p>
+    </div>
+    <div class="saas-card">
+        <h3 style="margin-top: 0;">4. Rich Analytics</h3>
+        <p style="color: #94A3B8;">Dive deep into interactive Plotly charts. Visualize your validation success rates, common failure reasons, and historical trends.</p>
+    </div>
+    <div class="saas-card">
+        <h3 style="margin-top: 0;">5. Chat with Data</h3>
+        <p style="color: #94A3B8;">A fully integrated AI assistant that analyzes your exact database errors to provide instant, conversational explanations.</p>
+    </div>
+    <div class="saas-card">
+        <h3 style="margin-top: 0;">6. Export Center</h3>
+        <p style="color: #94A3B8;">One-click generation of Cleaned Datasets, Error Isolation files, and comprehensive PDF Validation Summary Reports.</p>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # Initialize DB tables just once here or centrally
 from database import engine, Base

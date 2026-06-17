@@ -7,13 +7,13 @@ import plotly.express as px
 from database import SessionLocal
 from models import Upload, ProcessingStatus, ValidationRule
 
-st.set_page_config(page_title="Dashboard | TransactIQ", page_icon="📊", layout="wide")
+st.set_page_config(page_title="Dashboard | TransactIQ", layout="wide")
 
 css_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "style.css")
 with open(css_path) as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-st.title("📊 Dashboard")
+st.title("Dashboard")
 st.markdown("Overview of your transaction data quality.")
 
 db = SessionLocal()

@@ -7,13 +7,13 @@ from sqlalchemy import func
 from database import SessionLocal
 from models import Upload, ValidationError, ProcessingStatus
 
-st.set_page_config(page_title="Analytics | TransactIQ", page_icon="📈", layout="wide")
+st.set_page_config(page_title="Analytics | TransactIQ", layout="wide")
 
 css_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "style.css")
 with open(css_path) as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-st.title("📈 Analytics")
+st.title("Analytics")
 
 db = SessionLocal()
 try:
