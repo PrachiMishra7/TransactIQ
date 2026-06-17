@@ -1,5 +1,4 @@
 import os
-import uuid
 import streamlit as st
 import pandas as pd
 
@@ -12,47 +11,94 @@ css_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "s
 with open(css_path) as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-st.title("Validation Settings")
+st.markdown("""
+<div class="section-header">
+    <div class="section-icon">&#9881;</div>
+    <h2>Settings & Validation Rules</h2>
+</div>
+<p style="color:#64748B; margin-bottom:1.5rem; font-size:0.9rem;">
+    Manage country-specific phone validation rules and other configurable validation parameters.
+</p>
+""", unsafe_allow_html=True)
 
 db = SessionLocal()
 try:
-    st.markdown('<div class="saas-card" style="margin-bottom: 2rem;">', unsafe_allow_html=True)
-    st.subheader("Add New Rule")
-    with st.form("new_rule_form"):
-        c1, c2 = st.columns(2)
-        country_name    = c1.text_input("Country Name (e.g., India, Global)")
-        country_code    = c2.text_input("Country Code (e.g., +91)")
-        field_name      = c1.text_input("Field Name (e.g., phone, email)")
-        validation_type = c2.selectbox("Validation Type", ["phone_length", "email_format", "enum", "regex", "custom"])
-        rule_value = st.text_input("Rule Value (e.g., 10 for length)")
+    # Active rules table
+    rules = db.query(ValidationRule).filter(ValidationRule.is_active == True)\
+               .order_by(ValidationRule.country_name).all()
 
-        if st.form_submit_button("Add Rule"):
-            if not country_name or not field_name or not rule_value:
-                st.error("Please fill in required fields.")
-            else:
-                db.add(ValidationRule(
-                    id=str(uuid.uuid4()),
-                    country_name=country_name,
-                    country_code=country_code,
-                    field_name=field_name,
-                    validation_type=validation_type,
-                    rule_value=rule_value,
-                    is_active=True,
-                ))
-                db.commit()
-                st.success("Rule added!")
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown('<div class="card-title">Active Phone Validation Rules</div>', unsafe_allow_html=True)
 
-    st.markdown("### Active Rules")
-    rules = db.query(ValidationRule).order_by(ValidationRule.created_at.desc()).all()
     if rules:
         df = pd.DataFrame([{
-            "Country Name": r.country_name, "Country Code": r.country_code,
-            "Field Name": r.field_name, "Validation Type": r.validation_type,
-            "Rule Value": r.rule_value, "Active": r.is_active
+            "Country": r.country_name,
+            "Country Code": r.country_code,
+            "Field": r.field_name,
+            "Rule Type": r.validation_type,
+            "Expected Length / Value": r.rule_value,
+            "Version": r.version,
         } for r in rules])
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(df, use_container_width=True, hide_index=True)
     else:
-        st.info("No rules found.")
+        st.info("No validation rules configured yet.")
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # Add new rule
+    st.markdown('<hr class="divider">', unsafe_allow_html=True)
+    st.markdown('<div class="card"><div class="card-title">Add / Update Validation Rule</div>', unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        new_country = st.text_input("Country Name", placeholder="e.g. India")
+        new_code    = st.text_input("Country Code", placeholder="e.g. +91")
+    with col2:
+        new_field   = st.selectbox("Field", ["phone", "date", "payment_method", "sku", "email"])
+        new_type    = st.selectbox("Rule Type", ["length", "format", "allowlist", "pattern"])
+    with col3:
+        new_val     = st.text_input("Rule Value", placeholder="e.g. 10  (for phone length)")
+
+    if st.button("Add Rule", type="primary"):
+        if new_country and new_code and new_val:
+            existing = db.query(ValidationRule).filter(
+                ValidationRule.country_name == new_country,
+                ValidationRule.field_name   == new_field,
+            ).first()
+            if existing:
+                existing.rule_value      = new_val
+                existing.country_code    = new_code
+                existing.validation_type = new_type
+                existing.version         = existing.version + 1
+                db.commit()
+                st.success(f"Updated rule for {new_country} — {new_field}.")
+            else:
+                db.add(ValidationRule(
+                    country_name=new_country, country_code=new_code,
+                    field_name=new_field, validation_type=new_type, rule_value=new_val,
+                ))
+                db.commit()
+                st.success(f"Added rule: {new_country} / {new_field} = {new_val}")
+            st.rerun()
+        else:
+            st.warning("Please fill in all required fields.")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # Payment Mode Reference
+    st.markdown('<hr class="divider">', unsafe_allow_html=True)
+    st.markdown('<div class="card"><div class="card-title">Payment Mode Allow-List</div>', unsafe_allow_html=True)
+    pm = ["UPI", "Credit Card", "Debit Card", "Cash", "Wallet", "Net Banking"]
+    cols = st.columns(len(pm))
+    for i, mode in enumerate(pm):
+        cols[i].markdown(f'<span class="status-badge status-info">{mode}</span>', unsafe_allow_html=True)
+    st.markdown('<p style="color:#475569; font-size:0.82rem; margin-top:12px;">Any value outside this list will be flagged as an invalid payment method.</p>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # Date Format Reference
+    st.markdown('<div class="card"><div class="card-title">Accepted Date Formats</div>', unsafe_allow_html=True)
+    fmts = ["`YYYY-MM-DD`", "`DD-MM-YYYY`", "`MM/DD/YYYY`", "`YYYY-MM-DD HH:MM:SS`"]
+    st.markdown("  |  ".join(fmts))
+    st.markdown('</div>', unsafe_allow_html=True)
+
 finally:
     db.close()
