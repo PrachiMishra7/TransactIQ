@@ -89,7 +89,7 @@ def generate_error_excel(output_path: str, errors: list[dict]) -> str:
         df.to_excel(writer, index=False, sheet_name='Validation Errors')
         worksheet = writer.sheets['Validation Errors']
         for idx, col in enumerate(df.columns):
-            max_len = max(df[col].astype(str).map(len).max() if not df.empty else 0, len(col)) + 2
+            max_len = max(df[col].astype(str).str.len().max() if not df.empty else 0, len(str(col))) + 2
             # Handle columns beyond Z (e.g. AA) just in case, though error logs are small
             col_letter = chr(65 + idx) if idx < 26 else chr(64 + idx // 26) + chr(65 + idx % 26)
             worksheet.column_dimensions[col_letter].width = min(max_len, 50)
@@ -107,7 +107,7 @@ def generate_cleaned_excel(output_path: str, df: pd.DataFrame) -> str:
         df.to_excel(writer, index=False, sheet_name='Cleaned Data')
         worksheet = writer.sheets['Cleaned Data']
         for idx, col in enumerate(df.columns):
-            max_len = max(df[col].astype(str).map(len).max() if not df.empty else 0, len(col)) + 2
+            max_len = max(df[col].astype(str).str.len().max() if not df.empty else 0, len(str(col))) + 2
             col_letter = chr(65 + idx) if idx < 26 else chr(64 + idx // 26) + chr(65 + idx % 26)
             worksheet.column_dimensions[col_letter].width = min(max_len, 50)
             
