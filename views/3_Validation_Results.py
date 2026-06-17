@@ -21,8 +21,6 @@ st.markdown("""
 
 db = SessionLocal()
 try:
-db = SessionLocal()
-try:
     upload_id = st.session_state.get("current_upload_id")
     upload = db.query(Upload).filter(Upload.id == upload_id).first() if upload_id else None
 
