@@ -6,7 +6,7 @@ import pandas as pd
 from services.column_mapper import map_columns
 from services.validators import (
     validate_email, validate_phone, validate_date, validate_time,
-    validate_payment, validate_product, validate_order, ValidationResult,
+    validate_payment, validate_product, validate_order, ValidationResult, parse_date
 )
 
 
