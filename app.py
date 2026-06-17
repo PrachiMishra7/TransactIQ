@@ -8,9 +8,24 @@ st.set_page_config(
 )
 
 # Initialize database
-from database import engine
-from models import Base
+from database import engine, SessionLocal
+from models import Base, Upload
+
 Base.metadata.create_all(bind=engine)
+
+# Seed demo dataset if database is empty (for deployed environment)
+db = SessionLocal()
+try:
+    if db.query(Upload).count() == 0:
+        import asyncio
+        from services.demo_data_injector import seed_demo_data
+        
+        # Create a new event loop just in case we are in a thread without one
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(seed_demo_data(db))
+finally:
+    db.close()
 
 # Add the main app logo which automatically appears at the top of the sidebar above navigation
 st.logo("assets/logo.svg")
