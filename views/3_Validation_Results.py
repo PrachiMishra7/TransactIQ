@@ -45,25 +45,53 @@ try:
     score_color = "#10B981" if upload.quality_score >= 80 else "#F59E0B" if upload.quality_score >= 60 else "#EF4444"
 
     c1, c2, c3, c4 = st.columns(4)
-    c1.markdown(f"""<div class="kpi-card kpi-purple">
-        <div class="kpi-label">File</div>
-        <div style="color:#E2E8F0; font-size:0.95rem; font-weight:700; margin-top:6px;">{upload.file_name[:20]}…</div>
-    </div>""", unsafe_allow_html=True)
-    c2.markdown(f"""<div class="kpi-card kpi-green">
-        <div class="kpi-label">Valid Rows</div>
-        <div class="kpi-value">{upload.valid_rows:,}</div>
-        <div class="kpi-sub">{success_rate:.1f}% pass rate</div>
-    </div>""", unsafe_allow_html=True)
-    c3.markdown(f"""<div class="kpi-card kpi-red">
-        <div class="kpi-label">Invalid Rows</div>
-        <div class="kpi-value">{upload.invalid_rows:,}</div>
-        <div class="kpi-sub">{100-success_rate:.1f}% fail rate</div>
-    </div>""", unsafe_allow_html=True)
-    c4.markdown(f"""<div class="kpi-card" style="background:linear-gradient(145deg,#1E293B,#162032);border:1px solid rgba(255,255,255,0.07);border-radius:18px;padding:24px 20px;">
-        <div class="kpi-label">Quality Score</div>
-        <div class="kpi-value" style="color:{score_color};">{upload.quality_score:.0f}</div>
-        <div class="kpi-sub">out of 100</div>
-    </div>""", unsafe_allow_html=True)
+    
+    # 1. File Card (Indigo)
+    c1.markdown(f"""
+    <div style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); padding: 24px; border-radius: 16px; color: white; box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.4); margin-bottom: 20px;">
+        <div style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; margin-bottom: 8px; display: flex; align-items: center;">
+            <span class="mi" style="font-size:18px; margin-right:6px;">description</span> Active File
+        </div>
+        <div style="font-size: 1.2rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{upload.file_name}</div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # 2. Valid Rows (Emerald)
+    c2.markdown(f"""
+    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 24px; border-radius: 16px; color: white; box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.4); margin-bottom: 20px;">
+        <div style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; margin-bottom: 8px; display: flex; align-items: center;">
+            <span class="mi" style="font-size:18px; margin-right:6px;">check_circle</span> Valid Rows
+        </div>
+        <div style="font-size: 2rem; font-weight: 800; line-height: 1;">{upload.valid_rows:,}</div>
+        <div style="font-size: 0.85rem; opacity: 0.9; margin-top: 8px; font-weight: 500;">{success_rate:.1f}% pass rate</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 3. Invalid Rows (Rose)
+    c3.markdown(f"""
+    <div style="background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%); padding: 24px; border-radius: 16px; color: white; box-shadow: 0 10px 25px -5px rgba(244, 63, 94, 0.4); margin-bottom: 20px;">
+        <div style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; margin-bottom: 8px; display: flex; align-items: center;">
+            <span class="mi" style="font-size:18px; margin-right:6px;">warning</span> Error Rows
+        </div>
+        <div style="font-size: 2rem; font-weight: 800; line-height: 1;">{upload.invalid_rows:,}</div>
+        <div style="font-size: 0.85rem; opacity: 0.9; margin-top: 8px; font-weight: 500;">{100-success_rate:.1f}% fail rate</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 4. Quality Score (Amber/Orange or Dark if terrible)
+    score_grad = "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)" if upload.quality_score >= 50 else "linear-gradient(135deg, #f97316 0%, #c2410c 100%)"
+    if upload.quality_score >= 80:
+        score_grad = "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)"
+        
+    c4.markdown(f"""
+    <div style="background: {score_grad}; padding: 24px; border-radius: 16px; color: white; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2); margin-bottom: 20px;">
+        <div style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; margin-bottom: 8px; display: flex; align-items: center;">
+            <span class="mi" style="font-size:18px; margin-right:6px;">analytics</span> Quality Score
+        </div>
+        <div style="font-size: 2rem; font-weight: 800; line-height: 1;">{upload.quality_score:.0f}<span style="font-size:1rem; opacity:0.7;"> / 100</span></div>
+        <div style="font-size: 0.85rem; opacity: 0.9; margin-top: 8px; font-weight: 500;">Automated AI Score</div>
+    </div>
+    """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -131,7 +159,7 @@ try:
             gb.configure_column("Issue", wrapText=True, autoHeight=True, width=400)
             gb.configure_selection('single')
             gridOptions = gb.build()
-            AgGrid(df_err, gridOptions=gridOptions, height=450, theme="alpine", columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS)
+            AgGrid(df_err, gridOptions=gridOptions, height=450, theme="streamlit", columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS)
         else:
             st.success("No critical or high errors found!")
 
@@ -152,7 +180,7 @@ try:
             gb.configure_column("Issue", wrapText=True, autoHeight=True, width=400)
             gb.configure_selection('single')
             gridOptions = gb.build()
-            AgGrid(df_warn, gridOptions=gridOptions, height=450, theme="alpine", columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS)
+            AgGrid(df_warn, gridOptions=gridOptions, height=350, theme="streamlit", columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS)
         else:
             st.success("No warnings found!")
 

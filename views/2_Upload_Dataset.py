@@ -28,20 +28,18 @@ st.markdown("""
 </p>
 """, unsafe_allow_html=True)
 
-_APP_DIR = os.path.join(os.path.expanduser("~"), "AppData", "Local", "TransactIQ")
 
 db = SessionLocal()
 try:
     # ─────────────────────────────────────────────
     # SECTION 1: UPLOAD ZONE
     # ─────────────────────────────────────────────
-    st.markdown("""<div class="card" style="padding:40px 20px; text-align:center;">""", unsafe_allow_html=True)
-    uploaded_file = st.file_uploader(
-        "Drop your dataset here",
-        type=["csv", "xlsx", "xls"],
-        help="Supported formats: CSV, XLSX, XLS. Files are processed in 50k row chunks."
-    )
-    st.markdown("</div>", unsafe_allow_html=True)
+    with st.container(border=True):
+        uploaded_file = st.file_uploader(
+            "Drop your dataset here",
+            type=["csv", "xlsx", "xls"],
+            help="Supported formats: CSV, XLSX, XLS. Files are processed in 50k row chunks."
+        )
 
     if uploaded_file is not None:
         file_name = uploaded_file.name
@@ -95,96 +93,94 @@ try:
             # ─────────────────────────────────────────────
             # SECTION 3: AUTOMATIC SCHEMA DETECTION
             # ─────────────────────────────────────────────
-            st.markdown('<div class="card" style="height:100%;">', unsafe_allow_html=True)
-            st.markdown("""
-            <div class="card-title">Automatic Schema Detection</div>
-            <p style="color:#64748B; font-size:0.85rem; margin-bottom:1rem; margin-top:0;">
-                Our AI has analyzed the headers and auto-mapped them to canonical system fields.
-            </p>
-            """, unsafe_allow_html=True)
+            with st.container(border=True):
+                st.markdown("""
+                <div style="font-weight: 700; font-size: 1.1rem; margin-bottom: 8px; color: #1E293B;">Automatic Schema Detection</div>
+                <p style="color:#64748B; font-size:0.85rem; margin-bottom:1rem; margin-top:0;">
+                    Our AI has analyzed the headers and auto-mapped them to canonical system fields.
+                </p>
+                """, unsafe_allow_html=True)
 
-            auto_mapped = map_columns(headers)
-            canonical_options = ["(Ignore)"] + list(COLUMN_ALIASES.keys())
+                auto_mapped = map_columns(headers)
+                canonical_options = ["(Ignore)"] + list(COLUMN_ALIASES.keys())
 
-            user_mapping = {}
-            for h in headers:
-                default_val = auto_mapped.get(h, h)
-                idx = canonical_options.index(default_val) if default_val in canonical_options else 0
-                
-                # Visual confidence score
-                confidence = "99%" if default_val in canonical_options else "40%"
-                conf_color = "#10B981" if confidence == "99%" else "#F59E0B"
-                
-                user_mapping[h] = st.selectbox(
-                    f"Column: {h} (Confidence: {confidence})",
-                    canonical_options,
-                    index=idx,
-                    key=f"map_{h}",
-                )
-            st.markdown('</div>', unsafe_allow_html=True)
+                user_mapping = {}
+                for h in headers:
+                    default_val = auto_mapped.get(h, h)
+                    idx = canonical_options.index(default_val) if default_val in canonical_options else 0
+                    
+                    # Visual confidence score
+                    confidence = "99%" if default_val in canonical_options else "40%"
+                    conf_color = "#10B981" if confidence == "99%" else "#F59E0B"
+                    
+                    user_mapping[h] = st.selectbox(
+                        f"Column: {h} (Confidence: {confidence})",
+                        canonical_options,
+                        index=idx,
+                        key=f"map_{h}",
+                    )
 
         with c2:
             # ─────────────────────────────────────────────
             # SECTION 4: VALIDATION SETTINGS
             # ─────────────────────────────────────────────
-            st.markdown('<div class="card" style="height:100%;">', unsafe_allow_html=True)
-            st.markdown('<div class="card-title"><span class="mi">settings</span> Validation Settings</div>', unsafe_allow_html=True)
-            
-            val_phone = st.toggle("Phone Validation", value=True)
-            val_date = st.toggle("Date Validation", value=True)
-            val_dup = st.toggle("Duplicate Detection", value=True)
-            val_pay = st.toggle("Payment Validation", value=True)
-            val_chunk = st.toggle("Chunk Generation (50k rows)", value=True)
-            
-            st.markdown("<hr style='margin:20px 0; border:none; border-top:1px solid #E2E8F0;'>", unsafe_allow_html=True)
-            
-            if st.button("Process & Validate Dataset", type="primary", use_container_width=True):
-                import time
-                with st.status("Initializing Xeno Pipeline...", expanded=True) as status:
-                    st.write(":material/psychology: AI Validating Schema & Orders...")
-                    time.sleep(0.5)
-                    
-                    upload_id = str(uuid.uuid4())
-                    up_dir = os.path.join(_APP_DIR, "uploads")
-                    os.makedirs(up_dir, exist_ok=True)
-                    file_path = os.path.join(up_dir, f"{upload_id}{ext}")
+            with st.container(border=True):
+                st.markdown('<div style="font-weight: 700; font-size: 1.1rem; margin-bottom: 12px; color: #1E293B;"><span class="mi">settings</span> Validation Settings</div>', unsafe_allow_html=True)
+                
+                val_phone = st.toggle("Phone Validation", value=True)
+                val_date = st.toggle("Date Validation", value=True)
+                val_dup = st.toggle("Duplicate Detection", value=True)
+                val_pay = st.toggle("Payment Validation", value=True)
+                val_chunk = st.toggle("Chunk Generation (50k rows)", value=True)
+                
+                st.markdown("<hr style='margin:20px 0; border:none; border-top:1px solid #E2E8F0;'>", unsafe_allow_html=True)
+                
+                if st.button("Process & Validate Dataset", type="primary", use_container_width=True):
+                    import time
+                    with st.status("Initializing Xeno Pipeline...", expanded=True) as status:
+                        st.write(":material/psychology: AI Validating Schema & Orders...")
+                        time.sleep(0.5)
+                        from config import settings
+                        upload_id = str(uuid.uuid4())
+                        up_dir = settings.upload_dir
+                        os.makedirs(up_dir, exist_ok=True)
+                        file_path = os.path.join(up_dir, f"{upload_id}{ext}")
 
-                    uploaded_file.seek(0)
-                    with open(file_path, "wb") as f:
-                        f.write(uploaded_file.getvalue())
+                        uploaded_file.seek(0)
+                        with open(file_path, "wb") as f:
+                            f.write(uploaded_file.getvalue())
 
-                    settings_dict = {
-                        "phone": val_phone,
-                        "date": val_date,
-                        "duplicate": val_dup,
-                        "payment": val_pay
-                    }
+                        settings_dict = {
+                            "phone": val_phone,
+                            "date": val_date,
+                            "duplicate": val_dup,
+                            "payment": val_pay
+                        }
 
-                    upload = Upload(
-                        id=upload_id,
-                        file_name=file_name,
-                        file_size=file_size,
-                        processing_status=ProcessingStatus.UPLOADING,
-                        validation_settings=settings_dict
-                    )
-                    db.add(upload)
-                    db.commit()
+                        upload = Upload(
+                            id=upload_id,
+                            file_name=file_name,
+                            file_size=file_size,
+                            processing_status=ProcessingStatus.UPLOADING,
+                            validation_settings=settings_dict
+                        )
+                        db.add(upload)
+                        db.commit()
 
-                    if val_phone: st.write(":material/call: Checking Phone Numbers & Country Formats...")
-                    time.sleep(0.5)
-                    if val_date: st.write(":material/calendar_month: Verifying Dates & Data Integrity...")
-                    time.sleep(0.5)
-                    
-                    asyncio.run(process_upload(db, upload_id, file_path, user_mapping=user_mapping, validation_settings=settings_dict))
-                    st.session_state["current_upload_id"] = upload_id
-                    
-                    st.write(":material/view_in_ar: Preparing Output Reports...")
-                    time.sleep(0.5)
-                    status.update(label="Processing Complete!", state="complete", expanded=False)
+                        if val_phone: st.write(":material/call: Checking Phone Numbers & Country Formats...")
+                        time.sleep(0.5)
+                        if val_date: st.write(":material/calendar_month: Verifying Dates & Data Integrity...")
+                        time.sleep(0.5)
+                        
+                        asyncio.run(process_upload(db, upload_id, file_path, user_mapping=user_mapping, validation_settings=settings_dict))
+                        st.session_state["current_upload_id"] = upload_id
+                        
+                        st.write(":material/view_in_ar: Preparing Output Reports...")
+                        time.sleep(0.5)
+                        status.update(label="Processing Complete!", state="complete", expanded=False)
 
-                st.success("Validation complete! Head to Validation Results to view the detailed error report.")
-                st.balloons()
-            st.markdown('</div>', unsafe_allow_html=True)
+                    st.success("Validation complete! Head to Validation Results to view the detailed error report.")
+                    st.balloons()
 
     # ─────────────────────────────────────────────
     # SECTION 5: UPLOAD HISTORY & APPLIED RULES

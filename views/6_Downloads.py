@@ -11,7 +11,7 @@ with open(css_path) as f:
 
 st.markdown("""
 <div class="section-header">
-<div class="section-icon">&#8615;</div>
+<div class="section-icon"><span class="mi">download</span></div>
     <h2>Export Center</h2>
 </div>
 <p style="color:#64748B; margin-bottom:1.5rem; font-size:0.9rem;">
@@ -46,11 +46,11 @@ try:
 <div style="color:#1E293B; font-weight:600; font-size:0.95rem;">{upload.file_name}</div>
 </div>
 <div>
-<div class="kpi-label">Total Records</div>
+<div class="kpi-label">Total Rows</div>
 <div style="color:#4F46E5; font-weight:700; font-size:1.1rem;">{upload.total_rows:,}</div>
 </div>
 <div>
-<div class="kpi-label">Valid Records</div>
+<div class="kpi-label">Valid Rows</div>
 <div style="color:#059669; font-weight:700; font-size:1.1rem;">{upload.valid_rows:,}</div>
 </div>
 <div>
@@ -61,21 +61,23 @@ try:
 </div>
     """, unsafe_allow_html=True)
 
-    # Visual File Chunking Module
+    # Visual File Info / Chunking Module
     import math
-    chunks = math.ceil(upload.total_rows / 50000) if upload.total_rows > 0 else 1
+    CHUNK_SIZE = 50_000
     file_size_display = f"{upload.file_size/1024:.1f} KB" if upload.file_size < 1024*1024 else f"{upload.file_size/1024/1024:.2f} MB"
-    
-    st.markdown(f"""
+
+    if upload.total_rows > CHUNK_SIZE:
+        chunks = math.ceil(upload.total_rows / CHUNK_SIZE)
+        st.markdown(f"""
 <div class="card" style="margin-bottom:1.5rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
 <div style="text-align:center;">
-<div style="font-size:3rem;">:material/description:</div>
+<div style="font-size:3rem; display:flex; justify-content:center;"><span class="mi" style="font-size:3rem;">description</span></div>
 <div style="font-weight:700;">Original File</div>
-<div style="color:#4F46E5;">{file_size_display}</div>
+<div style="color:#4F46E5;">{file_size_display} &bull; {upload.total_rows:,} rows</div>
 </div>
 <div style="font-size:2rem; color:#64748B;">&rarr; Split &rarr;</div>
 <div style="text-align:center; background:rgba(79,70,229,0.05); border:1px solid rgba(79,70,229,0.15); border-radius:12px; padding:16px;">
-<div style="font-size:1.5rem; margin-bottom:8px;">:material/view_in_ar: Chunked Output</div>
+<div style="font-size:1.5rem; margin-bottom:8px; display:flex; align-items:center; justify-content:center; gap:8px;"><span class="mi" style="font-size:1.5rem;">view_in_ar</span> Chunked Output</div>
 <div style="display:flex; flex-direction:column; gap:4px; font-family:monospace; color:#4F46E5; font-size:0.9rem;">
 {'<br>'.join([f"Chunk_{i+1}.csv" for i in range(min(chunks, 4))])}
 {f"<br>... and {chunks-4} more" if chunks > 4 else ""}
@@ -83,7 +85,21 @@ try:
 </div>
 <div style="text-align:center;">
 <div class="kpi-label">Rows per chunk:</div>
-<div style="font-size:1.5rem; font-weight:800; color:#34D399;">50,000</div>
+<div style="font-size:1.5rem; font-weight:800; color:#34D399;">{CHUNK_SIZE:,}</div>
+</div>
+</div>
+    """, unsafe_allow_html=True)
+    else:
+        st.markdown(f"""
+<div class="card" style="margin-bottom:1.5rem; display:flex; align-items:center; gap:2rem; flex-wrap:wrap;">
+<div style="display:flex; justify-content:center;"><span class="mi" style="font-size:3rem; color:#4F46E5;">description</span></div>
+<div>
+<div style="font-weight:700; font-size:1.05rem;">{upload.file_name}</div>
+<div style="color:#64748B; font-size:0.9rem; margin-top:4px;">{file_size_display} &bull; {upload.total_rows:,} total rows &bull; {upload.valid_rows:,} valid &bull; {upload.invalid_rows:,} invalid</div>
+<div style="margin-top:8px; display:flex; gap:8px;">
+<span style="background:#DCFCE7; color:#16A34A; padding:3px 10px; border-radius:20px; font-size:0.8rem; font-weight:600;">{upload.valid_rows} valid rows ready to download</span>
+<span style="background:#FEE2E2; color:#DC2626; padding:3px 10px; border-radius:20px; font-size:0.8rem; font-weight:600;">{upload.invalid_rows} error rows logged</span>
+</div>
 </div>
 </div>
     """, unsafe_allow_html=True)
@@ -94,17 +110,25 @@ try:
     with d1:
         st.markdown("""
 <div class="card" style="text-align:center; min-height:200px;">
-<div style="font-size:2.5rem; margin-bottom:12px;">&#9989;</div>
+<div style="font-size:2.5rem; margin-bottom:12px; color:#34D399; display:flex; justify-content:center;"><span class="mi" style="font-size:2.5rem;">check_circle</span></div>
 <div style="font-weight:700; color:#34D399; font-size:1.05rem; margin-bottom:8px;">Cleaned Dataset</div>
 <div style="color:#64748B; font-size:0.82rem; margin-bottom:20px; line-height:1.5;">
                 All validated and cleaned records. Invalid rows removed, data normalized.
 </div>
 </div>
         """, unsafe_allow_html=True)
-        if upload.cleaned_file_path and os.path.exists(upload.cleaned_file_path):
+        excel_path = upload.cleaned_file_path.replace(".csv", ".xlsx") if upload.cleaned_file_path else None
+        if excel_path and os.path.exists(excel_path):
+            with open(excel_path, "rb") as f:
+                st.download_button(
+                    "Download Cleaned Excel",
+                    f, file_name="validated_transactions.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True,
+                )
+        elif upload.cleaned_file_path and os.path.exists(upload.cleaned_file_path):
             with open(upload.cleaned_file_path, "rb") as f:
                 st.download_button(
-                    "Download Cleaned CSV",
+                    "Download Cleaned CSV (Old)",
                     f, file_name="validated_transactions.csv",
                     mime="text/csv", use_container_width=True,
                 )
@@ -114,17 +138,25 @@ try:
     with d2:
         st.markdown("""
 <div class="card" style="text-align:center; min-height:200px;">
-<div style="font-size:2.5rem; margin-bottom:12px;">&#128221;</div>
+<div style="font-size:2.5rem; margin-bottom:12px; color:#F87171; display:flex; justify-content:center;"><span class="mi" style="font-size:2.5rem;">edit_note</span></div>
 <div style="font-weight:700; color:#F87171; font-size:1.05rem; margin-bottom:8px;">Validation Errors Log</div>
 <div style="color:#64748B; font-size:0.82rem; margin-bottom:20px; line-height:1.5;">
                 All rows that failed validation with row number, column, and error message.
 </div>
 </div>
         """, unsafe_allow_html=True)
-        if upload.error_file_path and os.path.exists(upload.error_file_path):
+        err_excel_path = upload.error_file_path.replace(".csv", ".xlsx") if upload.error_file_path else None
+        if err_excel_path and os.path.exists(err_excel_path):
+            with open(err_excel_path, "rb") as f:
+                st.download_button(
+                    "Download Error Log (Excel)",
+                    f, file_name="validation_errors.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True,
+                )
+        elif upload.error_file_path and os.path.exists(upload.error_file_path):
             with open(upload.error_file_path, "rb") as f:
                 st.download_button(
-                    "Download Error Log CSV",
+                    "Download Error Log (CSV)",
                     f, file_name="validation_errors.csv",
                     mime="text/csv", use_container_width=True,
                 )
@@ -134,7 +166,7 @@ try:
     with d3:
         st.markdown("""
 <div class="card" style="text-align:center; min-height:200px;">
-<div style="font-size:2.5rem; margin-bottom:12px;">&#128196;</div>
+<div style="font-size:2.5rem; margin-bottom:12px; color:#A5B4FC; display:flex; justify-content:center;"><span class="mi" style="font-size:2.5rem;">description</span></div>
 <div style="font-weight:700; color:#A5B4FC; font-size:1.05rem; margin-bottom:8px;">Summary Report</div>
 <div style="color:#64748B; font-size:0.82rem; margin-bottom:20px; line-height:1.5;">
                 Full PDF report with quality score, error breakdown, and AI-generated recommendations.

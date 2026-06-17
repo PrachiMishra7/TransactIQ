@@ -57,6 +57,19 @@ with st.sidebar:
             if selected != st.session_state.get("current_upload_id"):
                 st.session_state["current_upload_id"] = selected
                 st.rerun()
+            
+            if st.button("Delete Dataset", icon=":material/delete:", use_container_width=True):
+                upload_to_delete = db.query(Upload).filter(Upload.id == selected).first()
+                if upload_to_delete:
+                    db.delete(upload_to_delete)
+                    db.commit()
+                    if "current_upload_id" in st.session_state:
+                        del st.session_state["current_upload_id"]
+                    st.rerun()
+        else:
+            st.info("No datasets available. Please upload one.")
+            if "current_upload_id" in st.session_state:
+                del st.session_state["current_upload_id"]
     finally:
         db.close()
 

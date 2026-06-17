@@ -10,7 +10,7 @@ from config import settings
 from models import Upload, ValidationError, ValidationRule, Report, ProcessingStatus, Severity, RuleVersion
 from services.validation_engine import run_validation, compute_quality_score
 from services.ai_summary import generate_ai_summary, get_validation_insights
-from services.report_generator import generate_pdf_report, generate_error_csv, generate_cleaned_csv
+from services.report_generator import generate_pdf_report, generate_error_excel, generate_cleaned_excel
 
 
 async def update_status(db: Session, upload_id: str, status: ProcessingStatus):
@@ -147,12 +147,12 @@ async def process_upload(db: Session, upload_id: str, file_path: str, user_mappi
             total_rows, valid_rows, errors, quality["score"], upload.file_name,
         )
 
-        cleaned_path = os.path.join(output_dir, "cleaned.csv")
-        error_path = os.path.join(output_dir, "errors.csv")
+        cleaned_path = os.path.join(output_dir, "cleaned.xlsx")
+        error_path = os.path.join(output_dir, "errors.xlsx")
         report_path = os.path.join(output_dir, "validation_report.pdf")
 
-        generate_cleaned_csv(cleaned_path, cleaned_df)
-        generate_error_csv(error_path, errors)
+        generate_cleaned_excel(cleaned_path, cleaned_df)
+        generate_error_excel(error_path, errors)
         generate_pdf_report(
             report_path, upload.file_name, total_rows, valid_rows, invalid_rows,
             quality["score"], quality["label"], errors, summary,

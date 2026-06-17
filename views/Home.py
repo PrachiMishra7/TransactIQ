@@ -42,26 +42,49 @@ st.markdown("<br>", unsafe_allow_html=True)
 db = SessionLocal()
 try:
     # ─────────────────────────────────────────────
-    # SECTION 2 — PLATFORM HEALTH DASHBOARD
+    # SECTION 2 — ACTIVE DATASET HEALTH DASHBOARD
     # ─────────────────────────────────────────────
-    total_records   = db.query(func.coalesce(func.sum(Upload.total_rows), 0)).scalar()
-    valid_records   = db.query(func.coalesce(func.sum(Upload.valid_rows), 0)).scalar()
-    invalid_records = db.query(func.coalesce(func.sum(Upload.invalid_rows), 0)).scalar()
-    avg_score       = db.query(func.coalesce(func.avg(Upload.quality_score), 0)).filter(
-                          Upload.processing_status == ProcessingStatus.COMPLETED).scalar()
+    current_id = st.session_state.get("current_upload_id")
+    
+    if current_id:
+        upload = db.query(Upload).filter(Upload.id == current_id).first()
+        total_rows = upload.total_rows if upload else 0
+        valid_rows = upload.valid_rows if upload else 0
+        invalid_rows = upload.invalid_rows if upload else 0
+        avg_score = upload.quality_score if upload else 0
+        
+        if upload:
+            st.markdown(f"""
+            <div style="display:flex; gap:15px; margin-bottom: 20px; flex-wrap:wrap;">
+                <span style="background:#F1F5F9; color:#475569; padding:4px 10px; border-radius:6px; font-size:0.85rem; border:1px solid #E2E8F0;">
+                    <b>File:</b> {upload.file_name}
+                </span>
+                <span style="background:#F1F5F9; color:#475569; padding:4px 10px; border-radius:6px; font-size:0.85rem; border:1px solid #E2E8F0;">
+                    <b>Size:</b> {upload.file_size / 1024:.1f} KB
+                </span>
+                <span style="background:#F1F5F9; color:#475569; padding:4px 10px; border-radius:6px; font-size:0.85rem; border:1px solid #E2E8F0;">
+                    <b>Processed:</b> {upload.created_at.strftime('%Y-%m-%d %H:%M:%S')}
+                </span>
+                <span style="background:#F1F5F9; color:#475569; padding:4px 10px; border-radius:6px; font-size:0.85rem; border:1px solid #E2E8F0;">
+                    <b>ID:</b> {str(upload.id)[:8]}
+                </span>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        total_rows = valid_rows = invalid_rows = avg_score = 0
     
     m1, m2, m3, m4 = st.columns(4)
     m1.markdown(f"""<div class="kpi-card kpi-purple">
-<div class="kpi-label">Total Records</div>
-<div class="kpi-value">{int(total_records):,}</div>
+<div class="kpi-label">Total Rows</div>
+<div class="kpi-value">{int(total_rows):,}</div>
 </div>""", unsafe_allow_html=True)
     m2.markdown(f"""<div class="kpi-card kpi-green">
-<div class="kpi-label">Valid Records</div>
-<div class="kpi-value">{int(valid_records):,}</div>
+<div class="kpi-label">Valid Rows</div>
+<div class="kpi-value">{int(valid_rows):,}</div>
 </div>""", unsafe_allow_html=True)
     m3.markdown(f"""<div class="kpi-card kpi-red">
-<div class="kpi-label">Invalid Records</div>
-<div class="kpi-value">{int(invalid_records):,}</div>
+<div class="kpi-label">Error Rows</div>
+<div class="kpi-value">{int(invalid_rows):,}</div>
 </div>""", unsafe_allow_html=True)
     m4.markdown(f"""<div class="kpi-card kpi-yellow">
 <div class="kpi-label">Data Quality Score</div>

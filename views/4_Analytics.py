@@ -33,10 +33,24 @@ CHART_THEME = dict(
 
 db = SessionLocal()
 try:
-    # Global stats
-    total_records   = db.query(func.coalesce(func.sum(Upload.total_rows), 0)).scalar()
-    valid_records   = db.query(func.coalesce(func.sum(Upload.valid_rows), 0)).scalar()
-    invalid_records = db.query(func.coalesce(func.sum(Upload.invalid_rows), 0)).scalar()
+    current_id = st.session_state.get("current_upload_id")
+    
+    if current_id:
+        upload = db.query(Upload).filter(Upload.id == current_id).first()
+        total_records = upload.total_rows if upload else 0
+        valid_records = upload.valid_rows if upload else 0
+        invalid_records = upload.invalid_rows if upload else 0
+        
+        st.markdown(f"""
+        <div style="background:#F8FAFC; padding:12px 20px; border-radius:8px; margin-bottom:20px; border:1px solid #E2E8F0; display:flex; justify-content:space-between; align-items:center;">
+            <div><span style="color:#64748B; font-size:0.9rem;">Analyzing Dataset:</span> <span style="font-weight:600; color:#334155;">{upload.file_name if upload else 'Unknown'}</span></div>
+            <div style="background:#E0E7FF; color:#4338CA; padding:4px 10px; border-radius:6px; font-size:0.8rem; font-weight:600;">Dynamic View</div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        total_records   = db.query(func.coalesce(func.sum(Upload.total_rows), 0)).scalar()
+        valid_records   = db.query(func.coalesce(func.sum(Upload.valid_rows), 0)).scalar()
+        invalid_records = db.query(func.coalesce(func.sum(Upload.invalid_rows), 0)).scalar()
 
     if total_records == 0:
         st.markdown("""
@@ -71,10 +85,14 @@ try:
 
     with r1_right:
         st.markdown('<div class="card"><div class="card-title">Hierarchical Error Distribution</div>', unsafe_allow_html=True)
-        # Get errors grouped by severity and type
-        err_results = db.query(
+        
+        err_query = db.query(
             ValidationError.severity, ValidationError.error_type, func.count(ValidationError.id)
-        ).group_by(ValidationError.severity, ValidationError.error_type).all()
+        )
+        if current_id:
+            err_query = err_query.filter(ValidationError.upload_id == current_id)
+            
+        err_results = err_query.group_by(ValidationError.severity, ValidationError.error_type).all()
 
         if err_results:
             df_e = pd.DataFrame([{"Severity": r[0].value.capitalize(), "Type": r[1].replace("_"," ").title(), "Count": r[2]} for r in err_results])
@@ -93,7 +111,7 @@ try:
     r2_left, r2_right = st.columns([1.5, 1])
 
     with r2_left:
-        st.markdown('<div class="card"><div class="card-title">Quality Score Trend (Area Timeline)</div>', unsafe_allow_html=True)
+        st.markdown('<div class="card"><div class="card-title">Global Quality Score Trend</div>', unsafe_allow_html=True)
         uploads = db.query(Upload).filter(
             Upload.processing_status == ProcessingStatus.COMPLETED
         ).order_by(Upload.created_at.asc()).limit(20).all()
@@ -128,9 +146,13 @@ try:
 
     with r2_right:
         st.markdown('<div class="card"><div class="card-title">Top Failing Columns</div>', unsafe_allow_html=True)
-        col_results = db.query(
+        col_query = db.query(
             ValidationError.column_name, func.count(ValidationError.id)
-        ).group_by(ValidationError.column_name)\
+        )
+        if current_id:
+            col_query = col_query.filter(ValidationError.upload_id == current_id)
+            
+        col_results = col_query.group_by(ValidationError.column_name)\
          .order_by(func.count(ValidationError.id).desc()).limit(8).all()
 
         if col_results:

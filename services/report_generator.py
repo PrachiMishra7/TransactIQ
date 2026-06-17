@@ -79,15 +79,36 @@ def generate_pdf_report(
     return output_path
 
 
-def generate_error_csv(output_path: str, errors: list[dict]) -> str:
+def generate_error_excel(output_path: str, errors: list[dict]) -> str:
     df = pd.DataFrame(errors)
     if df.empty:
         df = pd.DataFrame(columns=["row", "column", "severity", "error", "error_type"])
     df.columns = [c.replace("_", " ").title() for c in df.columns]
-    df.to_csv(output_path, index=False)
+    
+    with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Validation Errors')
+        worksheet = writer.sheets['Validation Errors']
+        for idx, col in enumerate(df.columns):
+            max_len = max(df[col].astype(str).map(len).max() if not df.empty else 0, len(col)) + 2
+            # Handle columns beyond Z (e.g. AA) just in case, though error logs are small
+            col_letter = chr(65 + idx) if idx < 26 else chr(64 + idx // 26) + chr(65 + idx % 26)
+            worksheet.column_dimensions[col_letter].width = min(max_len, 50)
+            
     return output_path
 
 
-def generate_cleaned_csv(output_path: str, df: pd.DataFrame) -> str:
-    df.to_csv(output_path, index=False)
+def generate_cleaned_excel(output_path: str, df: pd.DataFrame) -> str:
+    # Ensure phone and ID columns are explicitly strings so Excel never uses scientific notation
+    for col in df.columns:
+        if "phone" in col.lower() or "id" in col.lower() or df[col].dtype == object:
+            df[col] = df[col].astype(str)
+            
+    with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Cleaned Data')
+        worksheet = writer.sheets['Cleaned Data']
+        for idx, col in enumerate(df.columns):
+            max_len = max(df[col].astype(str).map(len).max() if not df.empty else 0, len(col)) + 2
+            col_letter = chr(65 + idx) if idx < 26 else chr(64 + idx // 26) + chr(65 + idx % 26)
+            worksheet.column_dimensions[col_letter].width = min(max_len, 50)
+            
     return output_path
