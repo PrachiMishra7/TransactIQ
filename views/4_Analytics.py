@@ -8,7 +8,6 @@ from sqlalchemy import func
 from database import SessionLocal
 from models import Upload, ProcessingStatus, ValidationError
 
-st.set_page_config(page_title="Analytics | TransactIQ", layout="wide")
 
 css_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "style.css")
 with open(css_path) as f:

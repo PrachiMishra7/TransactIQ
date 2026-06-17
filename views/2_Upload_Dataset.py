@@ -11,7 +11,6 @@ from models import Upload, ProcessingStatus
 from services.processor import process_upload
 from services.column_mapper import map_columns, COLUMN_ALIASES
 
-st.set_page_config(page_title="Upload Dataset | TransactIQ", layout="wide")
 
 css_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "style.css")
 with open(css_path) as f:

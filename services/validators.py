@@ -59,15 +59,8 @@ def validate_phone(value: str, row: int, country_rules: list[dict], country: str
         return [ValidationResult(row, column, "high", "Missing phone number", "missing_value")]
 
     cleaned = re.sub(r"[\s\-().+]", "", str(value).strip())
-    if cleaned.startswith("91") and len(cleaned) > 10:
-        cleaned = cleaned[2:]
-    elif cleaned.startswith("65") and len(cleaned) > 8:
-        cleaned = cleaned[2:]
-
-    if not cleaned.isdigit():
-        errors.append(ValidationResult(row, column, "high", "Phone number must be numeric only", "format_error"))
-        return errors
-
+    
+    # Dynamically match the rule based on country string
     rule = None
     country_lower = str(country).strip().lower() if country and str(country).lower() != "nan" else ""
     for r in country_rules:
@@ -77,6 +70,17 @@ def validate_phone(value: str, row: int, country_rules: list[dict], country: str
 
     if not rule and country_rules:
         rule = country_rules[0]
+
+    # Dynamically strip the country code if it exists at the start
+    if rule:
+        code = rule.get("country_code", "").replace("+", "")
+        expected_len = int(rule.get("phone_length", rule.get("rule_value", "10")))
+        if code and cleaned.startswith(code) and len(cleaned) > expected_len:
+            cleaned = cleaned[len(code):]
+
+    if not cleaned.isdigit():
+        errors.append(ValidationResult(row, column, "high", "Phone number must be numeric only", "format_error"))
+        return errors
 
     if rule:
         expected_len = int(rule.get("phone_length", rule.get("rule_value", "10")))

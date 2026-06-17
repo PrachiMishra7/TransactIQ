@@ -1,4 +1,3 @@
-import os
 import streamlit as st
 
 st.set_page_config(
@@ -7,83 +6,31 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-css_path = os.path.join(os.path.dirname(__file__), "assets", "style.css")
-with open(css_path) as f:
-    st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+# CSS loaded by individual pages
 
-# Initialize DB tables
-from database import engine, Base
-import models
-Base.metadata.create_all(bind=engine)
-models.Base.metadata.create_all(bind=engine)
+# Define pages using the new st.navigation API (Streamlit 1.36+)
+home       = st.Page("views/Home.py", title="Home", icon=":material/home:")
+dashboard  = st.Page("views/1_Dashboard.py", title="Dashboard", icon=":material/dashboard:")
+upload     = st.Page("views/2_Upload_Dataset.py", title="Upload Dataset", icon=":material/upload_file:")
+results    = st.Page("views/3_Validation_Results.py", title="Validation Results", icon=":material/fact_check:")
+analytics  = st.Page("views/4_Analytics.py", title="Analytics", icon=":material/monitoring:")
+ai         = st.Page("views/5_AI_Insights.py", title="AI Insights", icon=":material/smart_toy:")
+downloads  = st.Page("views/6_Downloads.py", title="Downloads", icon=":material/download:")
+settings   = st.Page("views/7_Settings.py", title="Settings", icon=":material/settings:")
 
-# Hero Section
-st.markdown("""
-<div class="hero-section">
-    <div class="hero-title">Global Transaction Validation Platform</div>
-    <div class="hero-subtitle">
-        Validate, clean, process and export transaction datasets with enterprise-grade intelligence.
-        Built for scale. Designed for clarity.
+# Custom sidebar content
+with st.sidebar:
+    st.markdown("""
+    <div style="padding: 1rem 0; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <h2 style="color: white; margin: 0; font-size: 1.5rem; letter-spacing: -0.5px;">Transact<span style="color:#6366F1;">IQ</span></h2>
+        <div style="color: #64748B; font-size: 0.8rem; margin-top: 4px;">Data Validation Platform</div>
     </div>
-    <div class="hero-badges">
-        <span class="badge">✓ Phone Validation</span>
-        <span class="badge">✓ Date Validation</span>
-        <span class="badge">✓ Data Quality Checks</span>
-        <span class="badge">✓ CSV Chunking</span>
-        <span class="badge">✓ AI Insights</span>
-        <span class="badge">✓ Export Center</span>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
-# Platform Capabilities
-st.markdown("""
-<div class="section-header">
-    <div class="section-icon">&#9889;</div>
-    <h2>Platform Capabilities</h2>
-</div>
-<p style="color: #64748B; margin-bottom: 1.5rem; font-size: 0.9rem;">
-    Use the sidebar navigation to explore each feature. Here's a quick overview of what TransactIQ can do.
-</p>
-<div class="feature-grid">
-    <div class="feature-card">
-        <div class="feature-icon" style="background: linear-gradient(135deg, #6366F1, #4F46E5);">&#8679;</div>
-        <div class="feature-title">Intelligent Upload</div>
-        <div class="feature-desc">Drag-and-drop CSV or Excel files. Auto-detects your schema and maps columns intelligently before processing.</div>
-    </div>
-    <div class="feature-card">
-        <div class="feature-icon" style="background: linear-gradient(135deg, #10B981, #059669);">&#9889;</div>
-        <div class="feature-title">Chunk Processing</div>
-        <div class="feature-desc">Handle 1M+ row files with zero crashes. Streaming Pandas chunk processing (50k rows/batch) for peak efficiency.</div>
-    </div>
-    <div class="feature-card">
-        <div class="feature-icon" style="background: linear-gradient(135deg, #F59E0B, #D97706);">&#9998;</div>
-        <div class="feature-title">Rules Engine</div>
-        <div class="feature-desc">Country-specific phone rules, date format validation, SKU patterns, payment allow-lists, and order integrity checks.</div>
-    </div>
-    <div class="feature-card">
-        <div class="feature-icon" style="background: linear-gradient(135deg, #8B5CF6, #7C3AED);">&#9166;</div>
-        <div class="feature-title">Rich Analytics</div>
-        <div class="feature-desc">Interactive Plotly charts. Visualize error distribution, validation success rates, country breakdowns, and trends.</div>
-    </div>
-    <div class="feature-card">
-        <div class="feature-icon" style="background: linear-gradient(135deg, #EC4899, #BE185D);">&#9733;</div>
-        <div class="feature-title">AI Data Chat</div>
-        <div class="feature-desc">A smart AI assistant that analyzes your actual errors and answers questions about data quality conversationally.</div>
-    </div>
-    <div class="feature-card">
-        <div class="feature-icon" style="background: linear-gradient(135deg, #14B8A6, #0D9488);">&#8615;</div>
-        <div class="feature-title">Export Center</div>
-        <div class="feature-desc">One-click downloads: cleaned CSV, error isolation file, and a full PDF summary report with quality scores.</div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+# Navigation routing
+pg = st.navigation({
+    "Platform": [home, dashboard, upload, results, analytics],
+    "Tools": [ai, downloads, settings]
+})
 
-# Quick Nav
-st.markdown('<hr class="divider">', unsafe_allow_html=True)
-st.markdown("""
-<div class="info-callout">
-    <strong>Getting Started:</strong> Go to <em>Upload Dataset</em> in the sidebar to process your first file.
-    Results, analytics, and AI insights will appear automatically after processing.
-</div>
-""", unsafe_allow_html=True)
+pg.run()

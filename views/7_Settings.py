@@ -5,7 +5,6 @@ import pandas as pd
 from database import SessionLocal
 from models import ValidationRule
 
-st.set_page_config(page_title="Settings | TransactIQ", layout="wide")
 
 css_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "style.css")
 with open(css_path) as f:
@@ -87,16 +86,18 @@ try:
     # Payment Mode Reference
     st.markdown('<hr class="divider">', unsafe_allow_html=True)
     st.markdown('<div class="card"><div class="card-title">Payment Mode Allow-List</div>', unsafe_allow_html=True)
-    pm = ["UPI", "Credit Card", "Debit Card", "Cash", "Wallet", "Net Banking"]
-    cols = st.columns(len(pm))
-    for i, mode in enumerate(pm):
+    
+    from services.validators import VALID_PAYMENT_METHODS, DATE_FORMATS
+    pm = [p.title() for p in VALID_PAYMENT_METHODS]
+    cols = st.columns(min(len(pm), 8))
+    for i, mode in enumerate(pm[:8]):
         cols[i].markdown(f'<span class="status-badge status-info">{mode}</span>', unsafe_allow_html=True)
     st.markdown('<p style="color:#475569; font-size:0.82rem; margin-top:12px;">Any value outside this list will be flagged as an invalid payment method.</p>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
     # Date Format Reference
     st.markdown('<div class="card"><div class="card-title">Accepted Date Formats</div>', unsafe_allow_html=True)
-    fmts = ["`YYYY-MM-DD`", "`DD-MM-YYYY`", "`MM/DD/YYYY`", "`YYYY-MM-DD HH:MM:SS`"]
+    fmts = [f"`{f}`" for f in DATE_FORMATS[:5]]
     st.markdown("  |  ".join(fmts))
     st.markdown('</div>', unsafe_allow_html=True)
 

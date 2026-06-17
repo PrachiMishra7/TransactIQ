@@ -4,7 +4,6 @@ import streamlit as st
 from database import SessionLocal
 from models import Upload, ProcessingStatus
 
-st.set_page_config(page_title="Downloads | TransactIQ", layout="wide")
 
 css_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "style.css")
 with open(css_path) as f:
