@@ -44,10 +44,7 @@ class Upload(Base):
     report_file_path = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    validation_errors = relationship("ValidationError", back_populates="upload", cascade="all, delete-orphan")
-    reports = relationship("Report", back_populates="upload", cascade="all, delete-orphan")
-
-
+    # Relationships are defined at the bottom of the file to prevent Streamlit hot-reload registry errors
 class ValidationError(Base):
     __tablename__ = "validation_errors"
 
@@ -60,7 +57,7 @@ class ValidationError(Base):
     severity = Column(SAEnum(Severity), default=Severity.MEDIUM)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    upload = relationship("Upload", back_populates="validation_errors")
+    upload = relationship(Upload, back_populates="validation_errors")
 
 
 class ValidationRule(Base):
@@ -97,4 +94,8 @@ class Report(Base):
     quality_score = Column(Float, nullable=False)
     generated_at = Column(DateTime, default=datetime.utcnow)
 
-    upload = relationship("Upload", back_populates="reports")
+    upload = relationship(Upload, back_populates="reports")
+
+# Define relationships using direct class references to avoid SQLAlchemy string lookup registry issues during Streamlit hot-reloads
+Upload.validation_errors = relationship(ValidationError, back_populates="upload", cascade="all, delete-orphan")
+Upload.reports = relationship(Report, back_populates="upload", cascade="all, delete-orphan")
