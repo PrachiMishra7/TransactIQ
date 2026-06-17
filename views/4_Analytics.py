@@ -26,7 +26,7 @@ st.markdown("""
 CHART_THEME = dict(
     paper_bgcolor='rgba(0,0,0,0)',
     plot_bgcolor='rgba(0,0,0,0)',
-    font_color='#CBD5E1',
+    font_color='#475569',
     font_family='Inter',
 )
 
@@ -60,9 +60,9 @@ try:
         ))
         fig_pie.update_layout(
             **CHART_THEME, height=320, margin=dict(t=10,b=10,l=10,r=10),
-            legend=dict(font_color='#94A3B8', bgcolor='rgba(0,0,0,0)', orientation='h', y=-0.1),
+            legend=dict(font_color='#64748B', bgcolor='rgba(0,0,0,0)', orientation='h', y=-0.1),
             annotations=[dict(text=f"<b>{success_rate:.0f}%</b><br>Valid", x=0.5, y=0.5,
-                font_size=18, font_color='#818CF8', showarrow=False)]
+                font_size=18, font_color='#4F46E5', showarrow=False)]
         )
         st.plotly_chart(fig_pie, use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
@@ -78,7 +78,7 @@ try:
             df_e = pd.DataFrame([{"Type": r[0].replace("_"," ").title(), "Count": r[1]} for r in err_results])
             fig_bar = px.bar(df_e, x="Type", y="Count",
                 color="Count", color_continuous_scale=["#6366F1", "#EC4899"],
-                template="plotly_dark")
+                template="plotly_white")
             fig_bar.update_layout(**CHART_THEME, height=320, margin=dict(t=10,b=60,l=10,r=10),
                 coloraxis_showscale=False)
             fig_bar.update_traces(marker_line_width=0)
@@ -101,7 +101,7 @@ try:
             df_c = pd.DataFrame([{"Column": r[0], "Errors": r[1]} for r in col_results])
             fig_col = px.bar(df_c, y="Column", x="Errors", orientation="h",
                 color="Errors", color_continuous_scale=["#6366F1", "#F59E0B"],
-                template="plotly_dark")
+                template="plotly_white")
             fig_col.update_layout(**CHART_THEME, height=300, margin=dict(t=10,b=10,l=10,r=10),
                 coloraxis_showscale=False)
             fig_col.update_traces(marker_line_width=0)
@@ -123,7 +123,7 @@ try:
                 "File": u.file_name,
             } for u in uploads])
             fig_trend = px.line(df_trend, x="Date", y="Score", markers=True,
-                hover_name="File", template="plotly_dark",
+                hover_name="File", template="plotly_white",
                 color_discrete_sequence=["#818CF8"])
             fig_trend.update_layout(**CHART_THEME, height=300, margin=dict(t=10,b=30,l=10,r=10),
                 yaxis=dict(range=[0,105], ticksuffix=" pts", gridcolor='rgba(255,255,255,0.05)'),
@@ -150,9 +150,9 @@ try:
         df_all = pd.DataFrame(data)
         fig_all = px.bar(df_all, x="File", y="Count", color="Type",
             color_discrete_map={"Valid":"#10B981","Invalid":"#EF4444"},
-            barmode="group", template="plotly_dark")
+            barmode="group", template="plotly_white")
         fig_all.update_layout(**CHART_THEME, height=340, margin=dict(t=10,b=60,l=10,r=10),
-            legend=dict(font_color='#94A3B8', bgcolor='rgba(0,0,0,0)'),
+            legend=dict(font_color='#64748B', bgcolor='rgba(0,0,0,0)'),
             xaxis=dict(tickangle=-30))
         fig_all.update_traces(marker_line_width=0)
         st.plotly_chart(fig_all, use_container_width=True)

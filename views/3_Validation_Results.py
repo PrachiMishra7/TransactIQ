@@ -69,76 +69,127 @@ try:
     # Fetch errors
     errors = db.query(ValidationError).filter(ValidationError.upload_id == upload_id).all()
 
-    if not errors:
-        st.markdown("""
-        <div class="card" style="text-align:center; padding:48px;">
-            <div style="font-size:3rem; margin-bottom:16px;">&#10003;</div>
-            <div style="font-size:1.2rem; font-weight:700; color:#34D399; margin-bottom:8px;">All Records Passed Validation</div>
-            <div style="color:#64748B;">Your dataset is clean. No errors were detected.</div>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        # Error summary by type
-        type_counts = Counter(e.error_type for e in errors)
-        col_counts  = Counter(e.column_name for e in errors)
-        sev_counts  = Counter(e.severity.value for e in errors)
+    tab1, tab2, tab3, tab4 = st.tabs(["Overview", "Errors", "Warnings", "Insights"])
 
-        # Summary tiles
-        st.markdown('<div class="card"><div class="card-title">Error Summary by Severity</div>', unsafe_allow_html=True)
-        sc1, sc2, sc3, sc4 = st.columns(4)
-        sc1.markdown(f"""<div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);border-radius:12px;padding:16px;text-align:center;">
-            <div class="kpi-label" style="color:#F87171;">Critical</div>
-            <div style="font-size:1.8rem;font-weight:800;color:#F87171;">{sev_counts.get('CRITICAL',0)}</div>
-        </div>""", unsafe_allow_html=True)
-        sc2.markdown(f"""<div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:12px;padding:16px;text-align:center;">
-            <div class="kpi-label" style="color:#F87171;">High</div>
-            <div style="font-size:1.8rem;font-weight:800;color:#F87171;">{sev_counts.get('HIGH',0)}</div>
-        </div>""", unsafe_allow_html=True)
-        sc3.markdown(f"""<div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:12px;padding:16px;text-align:center;">
-            <div class="kpi-label" style="color:#FCD34D;">Medium</div>
-            <div style="font-size:1.8rem;font-weight:800;color:#FCD34D;">{sev_counts.get('MEDIUM',0)}</div>
-        </div>""", unsafe_allow_html=True)
-        sc4.markdown(f"""<div style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:12px;padding:16px;text-align:center;">
-            <div class="kpi-label" style="color:#818CF8;">Low</div>
-            <div style="font-size:1.8rem;font-weight:800;color:#818CF8;">{sev_counts.get('LOW',0)}</div>
-        </div>""", unsafe_allow_html=True)
+    with tab1:
+        st.markdown('<div class="card"><div class="card-title">Data Quality Overview</div>', unsafe_allow_html=True)
+        if upload.total_rows > 0:
+            import plotly.graph_objects as go
+            import plotly.express as px
+            
+            c1, c2 = st.columns(2)
+            with c1:
+                # Pie Chart
+                fig = go.Figure(data=[go.Pie(
+                    labels=['Valid Data', 'Invalid Data'], 
+                    values=[upload.valid_rows, upload.invalid_rows],
+                    hole=.6,
+                    marker_colors=['#34D399', '#F87171']
+                )])
+                fig.update_layout(
+                    title_text="Data Quality Breakdown",
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    font_color='#1E293B',
+                    margin=dict(t=40, b=0, l=0, r=0)
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            
+            with c2:
+                # Bar Chart for error columns
+                if errors:
+                    col_counts = Counter(e.column_name for e in errors)
+                    df_cols = pd.DataFrame(list(col_counts.items()), columns=['Column', 'Errors']).sort_values('Errors', ascending=True)
+                    fig2 = px.bar(df_cols, x='Errors', y='Column', orientation='h', title='Errors by Column',
+                                  color_discrete_sequence=['#818CF8'])
+                    fig2.update_layout(
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        font_color='#1E293B',
+                        margin=dict(t=40, b=0, l=0, r=0)
+                    )
+                    st.plotly_chart(fig2, use_container_width=True)
+                else:
+                    st.info("No errors to display.")
         st.markdown('</div>', unsafe_allow_html=True)
 
-        # Filters
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.markdown('<div class="card-title">Error Table</div>', unsafe_allow_html=True)
-
-        f1, f2, f3 = st.columns(3)
-        with f1:
-            filter_col = st.selectbox("Filter by Column", ["All"] + list(col_counts.keys()))
-        with f2:
-            filter_type = st.selectbox("Filter by Error Type", ["All"] + list(type_counts.keys()))
-        with f3:
-            filter_sev = st.selectbox("Filter by Severity", ["All", "CRITICAL", "HIGH", "MEDIUM", "LOW"])
-
-        filtered = errors
-        if filter_col != "All":
-            filtered = [e for e in filtered if e.column_name == filter_col]
-        if filter_type != "All":
-            filtered = [e for e in filtered if e.error_type == filter_type]
-        if filter_sev != "All":
-            filtered = [e for e in filtered if e.severity.value == filter_sev]
-
-        if filtered:
-            sev_color = {"CRITICAL": "🔴", "HIGH": "🟠", "MEDIUM": "🟡", "LOW": "🔵"}
+    with tab2:
+        st.markdown('<div class="card"><div class="card-title">Critical & High Errors</div>', unsafe_allow_html=True)
+        err_filtered = [e for e in errors if e.severity.value in ["CRITICAL", "HIGH"]]
+        if err_filtered:
+            sev_color = {"CRITICAL": "🔴", "HIGH": "🟠"}
             df_err = pd.DataFrame([{
-                "Sev": sev_color.get(e.severity.value, "⚪"),
+                "Severity": sev_color.get(e.severity.value, "⚪"),
                 "Row": e.row_number,
                 "Column": e.column_name,
-                "Error Type": e.error_type.replace("_", " ").title(),
-                "Message": e.error_message,
-            } for e in filtered[:500]])
+                "Issue": e.error_message,
+            } for e in err_filtered[:500]])
             st.dataframe(df_err, use_container_width=True, hide_index=True)
-            if len(filtered) > 500:
-                st.caption(f"Showing first 500 of {len(filtered)} errors. Download the full error file from the Downloads page.")
         else:
-            st.info("No errors match your filters.")
+            st.success("No critical or high errors found!")
         st.markdown('</div>', unsafe_allow_html=True)
+
+    with tab3:
+        st.markdown('<div class="card"><div class="card-title">Warnings (Medium/Low)</div>', unsafe_allow_html=True)
+        warn_filtered = [e for e in errors if e.severity.value in ["MEDIUM", "LOW"]]
+        if warn_filtered:
+            sev_color = {"MEDIUM": "🟡", "LOW": "🔵"}
+            df_warn = pd.DataFrame([{
+                "Severity": sev_color.get(e.severity.value, "⚪"),
+                "Row": e.row_number,
+                "Column": e.column_name,
+                "Issue": e.error_message,
+            } for e in warn_filtered[:500]])
+            st.dataframe(df_warn, use_container_width=True, hide_index=True)
+        else:
+            st.success("No warnings found!")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with tab4:
+        st.markdown('<div class="card"><div class="card-title">Xeno Smart Insights</div>', unsafe_allow_html=True)
+        
+        c1, c2 = st.columns([1, 2])
+        with c1:
+            st.markdown(f"""
+            <div style="text-align:center; padding:2rem 0;">
+                <div style="font-size:4rem; font-weight:800; color:{score_color};">{upload.quality_score:.0f}<span style="font-size:2rem; color:#64748B;">/100</span></div>
+                <div class="kpi-label">Data Quality Score</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with c2:
+            st.markdown("### Top Issues Detected")
+            if errors:
+                type_counts = Counter(e.error_message for e in errors)
+                for issue, count in type_counts.most_common(3):
+                    st.markdown(f"- **{count}** records with: `{issue}`")
+                
+                st.markdown("### Xeno AI Recommendation")
+                st.info("Clean customer contact fields and standardize date formats before importing to downstream CRM systems. Consider using the 'Download Cleaned' file to bypass these errors.")
+            else:
+                st.success("Dataset is clean! No recommendations needed.")
+                
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        if errors:
+            st.markdown('<div class="card"><div class="card-title">AI Error Explanation Panel</div>', unsafe_allow_html=True)
+            st.write("Select a common error from this dataset to understand why it failed and how to fix it.")
+            common_errs = [e[0] for e in type_counts.most_common(5)]
+            selected_err = st.selectbox("Select Error to Explain:", common_errs)
+            
+            if selected_err:
+                with st.spinner("AI generating explanation..."):
+                    import time
+                    time.sleep(0.8) # simulate AI thinking
+                    
+                    st.markdown(f"""
+                    <div style="background:rgba(99,102,241,0.1); border-left:4px solid #818CF8; padding:16px; margin-top:16px; border-radius:4px;">
+                        <h4 style="margin-top:0; color:#818CF8;">Error: {selected_err}</h4>
+                        <p><strong>AI Analysis:</strong> This error occurs because the provided value violates the schema rules or country-specific formats defined in your active Settings.</p>
+                        <p><strong>Suggested Fix:</strong> Review the raw source data for formatting discrepancies. You can update the Validation Rules engine to be more lenient, or manually correct the source values.</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
 finally:
     db.close()

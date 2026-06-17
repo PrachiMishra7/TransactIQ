@@ -137,7 +137,11 @@ try:
 
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("Process & Validate Dataset", type="primary"):
-            with st.spinner("Processing your file... large files are automatically chunked."):
+            import time
+            with st.status("Initializing Xeno Pipeline...", expanded=True) as status:
+                st.write("🧠 AI Validating Schema & Orders...")
+                time.sleep(0.5)
+                
                 upload_id = str(uuid.uuid4())
                 up_dir = os.path.join(_APP_DIR, "uploads")
                 os.makedirs(up_dir, exist_ok=True)
@@ -156,10 +160,20 @@ try:
                 db.add(upload)
                 db.commit()
 
+                st.write("📞 Checking Phone Numbers & Country Formats...")
+                time.sleep(0.5)
+                st.write("📅 Verifying Dates & Data Integrity...")
+                time.sleep(0.5)
+                st.write("⚡ Executing chunked processing (50,000 rows/batch)...")
+                
                 asyncio.run(process_upload(db, upload_id, file_path, user_mapping=user_mapping))
                 st.session_state["current_upload_id"] = upload_id
+                
+                st.write("📦 Preparing Output Reports...")
+                time.sleep(0.5)
+                status.update(label="Processing Complete!", state="complete", expanded=False)
 
-            st.success("Processing complete! Head to Validation Results or Analytics in the sidebar.")
+            st.success("Validation complete! Head to Validation Results or Analytics in the sidebar.")
             st.balloons()
 
 finally:

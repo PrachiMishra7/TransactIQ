@@ -86,62 +86,82 @@ try:
 
     # --- Chat Interface ---
     st.markdown('<hr class="divider">', unsafe_allow_html=True)
-    st.markdown('<div class="card"><div class="card-title">Chat with your Data</div>', unsafe_allow_html=True)
-    st.markdown('<p style="color:#64748B; font-size:0.85rem; margin-bottom:1rem;">Ask any question about the errors in your dataset. Try: <em>"Why did phones fail?"</em> or <em>"Summarize the errors"</em></p>', unsafe_allow_html=True)
+    st.markdown('<div class="card-title" style="margin-bottom:0.5rem;">Chat with your Data</div>', unsafe_allow_html=True)
+    st.markdown('<p style="color:#64748B; font-size:0.85rem; margin-bottom:1rem;">Ask any question about the errors in your dataset, or click a suggestion below.</p>', unsafe_allow_html=True)
 
+    # Suggested Questions Pills
+    s1, s2, s3, s4 = st.columns(4)
+    suggestion = None
+    if s1.button("📊 Summarize errors", use_container_width=True): suggestion = "Summarize the errors"
+    if s2.button("📞 Why did phones fail?", use_container_width=True): suggestion = "Why did phones fail?"
+    if s3.button("📅 Date issues?", use_container_width=True): suggestion = "What are the date issues?"
+    if s4.button("💡 How to improve?", use_container_width=True): suggestion = "How can I improve?"
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Chat Container
+    chat_container = st.container(height=400)
+    
     if "messages" not in st.session_state:
         st.session_state.messages = [{
             "role": "assistant",
-            "content": f"Hello! I've analyzed `{upload.file_name}`. It has a quality score of **{score:.0f}/100** with **{total_errs:,} errors** across {len(err_by_col)} columns. What would you like to know?"
+            "content": f"Hello! I've analyzed `{upload.file_name}`. It scored **{score:.0f}/100** with **{total_errs:,} errors**. What would you like to know?"
         }]
 
-    for msg in st.session_state.messages:
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
+    with chat_container:
+        for msg in st.session_state.messages:
+            with st.chat_message(msg["role"]):
+                st.markdown(msg["content"])
 
-    if prompt := st.chat_input("Ask about your data errors..."):
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
+    # Input Handling
+    prompt = st.chat_input("Ask about your data errors...")
+    active_prompt = prompt or suggestion
 
-        p = prompt.lower()
+    if active_prompt:
+        st.session_state.messages.append({"role": "user", "content": active_prompt})
+        with chat_container:
+            with st.chat_message("user"):
+                st.markdown(active_prompt)
+
+        p = active_prompt.lower()
 
         # Build contextual response
         if "phone" in p:
             n = sum(1 for e in errors if e.column_name in ["phone", "phone_number"])
-            res = f"There are **{n} phone number errors** in your dataset. Common causes:\n- **Length mismatch**: India (+91) needs 10 digits, Singapore (+65) needs 8 digits.\n- **Non-numeric characters**: spaces, dashes or brackets in the number.\n- **Missing country code**: the number doesn't include the international prefix."
+            res = f"There are **{n} phone number errors** in your dataset.\n\n**Common causes:**\n- **Length mismatch**: Incorrect number of digits for the country.\n- **Invalid characters**: Contains letters or symbols.\n- **Country code mismatch**: The number does not match the configured rules."
         elif "date" in p:
             n = sum(1 for e in errors if "date" in e.column_name.lower())
-            res = f"**{n} date errors** were found. Supported formats are `YYYY-MM-DD`, `DD-MM-YYYY`, `MM/DD/YYYY`, and `YYYY-MM-DD HH:MM:SS`. Issues are usually:\n- Completely wrong format (e.g. text instead of date)\n- Invalid day/month values\n- Delivery date appearing before order date"
+            res = f"**{n} date errors** were found. Supported formats include `YYYY-MM-DD` and `DD-MM-YYYY`. Issues are usually:\n- Completely wrong format\n- Invalid day/month values\n- Delivery date appearing before order date"
         elif "sku" in p or "product" in p:
             n = sum(1 for e in errors if e.column_name in ["sku", "product_name"])
-            res = f"**{n} product/SKU errors** detected. SKUs must follow the exact pattern `SKU-<digits>` (e.g., `SKU-10041`). Missing the prefix or using letters after the dash causes failures."
+            res = f"**{n} product/SKU errors** detected. SKUs must follow the exact pattern `SKU-<digits>` (e.g., `SKU-10041`)."
         elif "payment" in p:
             n = sum(1 for e in errors if "payment" in e.column_name.lower())
-            res = f"**{n} payment errors** found. Allowed payment modes are: `UPI`, `Credit Card`, `Debit Card`, `Cash`, `Wallet`, `Net Banking`. Any variations (e.g. `upi`, `CC`, `crypto`) will be flagged."
+            res = f"**{n} payment errors** found. Values must perfectly match the allow-list configured in Settings."
         elif "summar" in p or "overview" in p:
             top3 = err_by_col.most_common(3)
-            breakdown = "\n".join([f"- `{c}`: {n} errors" for c, n in top3])
-            res = f"**Summary for `{upload.file_name}`**\n\n- Total Records: **{upload.total_rows:,}**\n- Valid: **{upload.valid_rows:,}** ({success_rate:.1f}%)\n- Invalid: **{upload.invalid_rows:,}**\n- Quality Score: **{score:.0f}/100**\n\nTop failing columns:\n{breakdown}"
+            breakdown = "\n".join([f"- **{c}**: {n} errors" for c, n in top3])
+            res = f"### Summary for `{upload.file_name}`\n\n- **Total Records:** {upload.total_rows:,}\n- **Valid:** {upload.valid_rows:,} ({success_rate:.1f}%)\n- **Invalid:** {upload.invalid_rows:,}\n- **Quality Score:** {score:.0f}/100\n\n**Top failing columns:**\n{breakdown}"
         elif "duplicate" in p or "order" in p:
             n = sum(1 for e in errors if e.error_type == "duplicate")
-            res = f"**{n} duplicate order ID errors** detected. Every order must have a unique `order_id`. Duplicate entries indicate data entry errors or failed deduplication upstream."
+            res = f"**{n} duplicate order ID errors** detected. Every order must have a unique `order_id`."
         elif "how" in p and "improv" in p:
-            res = "To improve your quality score:\n1. **Fix phone formats** — strip spaces and ensure correct digit count per country.\n2. **Normalize dates** — convert all dates to `YYYY-MM-DD` before upload.\n3. **Validate SKUs** — enforce the `SKU-XXXXX` pattern in your source system.\n4. **Standardize payment modes** — use a controlled vocabulary and avoid free-text entries."
+            res = "### How to Improve\n1. **Fix phone formats** — strip spaces and ensure correct digit count per country.\n2. **Normalize dates** — convert all dates to `YYYY-MM-DD`.\n3. **Validate SKUs** — enforce the `SKU-XXXXX` pattern.\n4. **Standardize payment modes** — use a controlled vocabulary."
         else:
-            res = f"That's a great question! Based on my analysis of `{upload.file_name}`, the primary issues are concentrated in phone number formats and date fields. Your dataset scored **{score:.0f}/100**. Try asking specifically about:\n- phones, dates, SKUs, payment modes, duplicates, or 'how to improve'."
+            res = f"Based on my analysis of `{upload.file_name}`, the primary issues are concentrated in phone number formats and date fields. Your dataset scored **{score:.0f}/100**."
 
-        with st.chat_message("assistant"):
-            placeholder = st.empty()
-            displayed = ""
-            for word in res.split(" "):
-                displayed += word + " "
-                placeholder.markdown(displayed + "▌")
-                time.sleep(0.025)
-            placeholder.markdown(displayed)
+        with chat_container:
+            with st.chat_message("assistant"):
+                placeholder = st.empty()
+                displayed = ""
+                for word in res.split(" "):
+                    displayed += word + " "
+                    placeholder.markdown(displayed + "▌")
+                    time.sleep(0.02)
+                placeholder.markdown(displayed)
 
         st.session_state.messages.append({"role": "assistant", "content": displayed})
-    st.markdown('</div>', unsafe_allow_html=True)
+
 
 finally:
     db.close()

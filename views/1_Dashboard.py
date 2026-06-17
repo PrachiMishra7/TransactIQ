@@ -86,10 +86,10 @@ try:
             ))
             fig_pie.update_layout(
                 paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                font_color='#CBD5E1', margin=dict(t=10,b=10,l=10,r=10),
-                legend=dict(font_color='#94A3B8', bgcolor='rgba(0,0,0,0)'),
+                font_color='#475569', margin=dict(t=10,b=10,l=10,r=10),
+                legend=dict(font_color='#64748B', bgcolor='rgba(0,0,0,0)'),
                 annotations=[dict(text=f'{success_rate:.0f}%', x=0.5, y=0.5,
-                    font_size=28, font_color='#818CF8', showarrow=False, font_family='Inter')]
+                    font_size=28, font_color='#4F46E5', showarrow=False, font_family='Inter')]
             )
             st.plotly_chart(fig_pie, use_container_width=True)
             st.markdown('</div>', unsafe_allow_html=True)
@@ -123,10 +123,10 @@ try:
             df_e = pd.DataFrame([{"Error Type": r[0].replace("_", " ").title(), "Count": r[1]} for r in err_results])
             fig_bar = px.bar(df_e, x="Count", y="Error Type", orientation="h",
                 color="Count", color_continuous_scale=["#6366F1", "#EC4899"],
-                template="plotly_dark")
+                template="plotly_white")
             fig_bar.update_layout(
                 paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                font_color='#CBD5E1', margin=dict(t=10,b=10,l=10,r=10),
+                font_color='#475569', margin=dict(t=10,b=10,l=10,r=10),
                 coloraxis_showscale=False,
             )
             fig_bar.update_traces(marker_line_width=0)

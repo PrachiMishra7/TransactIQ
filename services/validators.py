@@ -64,12 +64,10 @@ def validate_phone(value: str, row: int, country_rules: list[dict], country: str
     rule = None
     country_lower = str(country).strip().lower() if country and str(country).lower() != "nan" else ""
     for r in country_rules:
-        if r.get("country_name", "").lower() == country_lower or r.get("country_code", "") in str(value):
+        # Match by explicit country name, OR if the raw number starts with the country code (e.g. +91)
+        if r.get("country_name", "").lower() == country_lower or (r.get("country_code", "") and str(value).strip().startswith(r.get("country_code", ""))):
             rule = r
             break
-
-    if not rule and country_rules:
-        rule = country_rules[0]
 
     # Dynamically strip the country code if it exists at the start
     if rule:
@@ -84,19 +82,16 @@ def validate_phone(value: str, row: int, country_rules: list[dict], country: str
 
     if rule:
         expected_len = int(rule.get("phone_length", rule.get("rule_value", "10")))
-        code = rule.get("country_code", rule.get("code", ""))
         if len(cleaned) != expected_len:
             errors.append(ValidationResult(
                 row, column, "high",
                 f"Invalid phone number length: expected {expected_len} digits for {rule.get('country_name', 'country')}",
                 "length_error",
             ))
-        raw = str(value).strip()
-        if code and code.replace("+", "") not in raw.replace("+", "").replace("-", "").replace(" ", "") and country_lower:
-            if not any(raw.startswith(c) for c in [code, code.replace("+", ""), f"+{code.replace('+','')}"]):
-                pass  # lenient if digits match after strip
-    elif len(cleaned) < 8 or len(cleaned) > 15:
-        errors.append(ValidationResult(row, column, "medium", "Phone number length out of range (8-15 digits)", "length_error"))
+    else:
+        # Generic fallback validation if no specific country rule matches
+        if len(cleaned) < 8 or len(cleaned) > 15:
+            errors.append(ValidationResult(row, column, "medium", "Phone number length out of range (8-15 digits)", "length_error"))
 
     return errors
 
