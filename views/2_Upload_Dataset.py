@@ -80,10 +80,7 @@ try:
         st.markdown('<div class="card">', unsafe_allow_html=True)
         st.markdown('<div class="card-title">Dataset Preview (First 10 Rows)</div>', unsafe_allow_html=True)
         
-        gb = GridOptionsBuilder.from_dataframe(df_preview)
-        gb.configure_default_column(resizable=True, filterable=True, sortable=True)
-        gridOptions = gb.build()
-        AgGrid(df_preview, gridOptions=gridOptions, height=350, theme="alpine", columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS)
+        st.dataframe(df_preview, use_container_width=True, height=350)
         
         st.markdown('</div>', unsafe_allow_html=True)
 

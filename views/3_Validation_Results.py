@@ -160,12 +160,18 @@ try:
                 "Issue": e.error_message,
             } for e in err_filtered[:500]])
             
-            gb = GridOptionsBuilder.from_dataframe(df_err)
-            gb.configure_default_column(resizable=True, filterable=True, sortable=True)
-            gb.configure_column("Issue", wrapText=True, autoHeight=True, width=400)
-            gb.configure_selection('single')
-            gridOptions = gb.build()
-            AgGrid(df_err, gridOptions=gridOptions, height=450, theme="streamlit", columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS)
+            st.dataframe(
+                df_err, 
+                use_container_width=True, 
+                height=450,
+                hide_index=True,
+                column_config={
+                    "Severity": st.column_config.Column("Severity", width="small"),
+                    "Row": st.column_config.NumberColumn("Row", width="small"),
+                    "Column": st.column_config.TextColumn("Column", width="medium"),
+                    "Issue": st.column_config.TextColumn("Issue", width="large")
+                }
+            )
         else:
             st.success("No critical or high errors found!")
 
@@ -181,12 +187,18 @@ try:
                 "Issue": e.error_message,
             } for e in warn_filtered[:500]])
             
-            gb = GridOptionsBuilder.from_dataframe(df_warn)
-            gb.configure_default_column(resizable=True, filterable=True, sortable=True)
-            gb.configure_column("Issue", wrapText=True, autoHeight=True, width=400)
-            gb.configure_selection('single')
-            gridOptions = gb.build()
-            AgGrid(df_warn, gridOptions=gridOptions, height=350, theme="streamlit", columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS)
+            st.dataframe(
+                df_warn, 
+                use_container_width=True, 
+                height=350,
+                hide_index=True,
+                column_config={
+                    "Severity": st.column_config.Column("Severity", width="small"),
+                    "Row": st.column_config.NumberColumn("Row", width="small"),
+                    "Column": st.column_config.TextColumn("Column", width="medium"),
+                    "Issue": st.column_config.TextColumn("Issue", width="large")
+                }
+            )
         else:
             st.success("No warnings found!")
 
