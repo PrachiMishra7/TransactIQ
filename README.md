@@ -1,142 +1,70 @@
-# TransactIQ — Transaction Data Quality Platform
+# 🚀 TransactIQ — Enterprise Data Quality Platform
 
-A production-quality web application for validating, cleaning, and analyzing transaction datasets. Built for enterprise-grade data quality workflows with AI-assisted reporting.
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python) ![Streamlit](https://img.shields.io/badge/Streamlit-1.35%2B-FF4B4B?style=for-the-badge&logo=streamlit) ![SQLite](https://img.shields.io/badge/SQLite-Local-003B57?style=for-the-badge&logo=sqlite) ![Pandas](https://img.shields.io/badge/Pandas-Data%20Engine-150458?style=for-the-badge&logo=pandas)
 
-![TransactIQ](https://img.shields.io/badge/Next.js-15-black) ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-green) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-blue)
+TransactIQ is a premium, high-performance web application designed for enterprise data quality workflows. Built entirely in Python using Streamlit, it allows users to upload, validate, clean, and analyze massive transaction datasets with zero cloud dependencies.
 
-## Features
+![TransactIQ Screenshot](assets/logo.svg) <!-- Replace with actual screenshot path if available -->
 
-- **Upload & Process** — Drag-and-drop CSV/XLSX upload with real-time processing pipeline
-- **Modular Validation Engine** — Phone, email, date, time, payment, product, and order validation
-- **Smart Column Mapping** — Auto-maps `mobile`, `phone_no`, `contact_number` → `phone`
-- **Data Cleaning** — Auto-fixes whitespace, phone formats, names, dates
-- **Quality Score** — 0–100 score (Completeness 40%, Accuracy 40%, Duplicates 10%, Formatting 10%)
-- **AI Summary** — Intelligent validation report with recommendations
-- **Error Dashboard** — Searchable, filterable, sortable error table with export
-- **Admin Rules** — Configure validation rules without code changes
-- **Analytics Dashboard** — KPIs, charts, quality trends, country-wise errors
-- **Report Downloads** — Cleaned CSV, error CSV, validation PDF
-- **CSV Chunking** — Split large files by row count or file size
-- **Upload History** — View past uploads and re-download reports
-- **Rule Versioning** — Tracks which rule set processed each file
+## ✨ Features
 
-## Tech Stack
+- **Blazing Fast Processing** — Drag-and-drop CSV uploads processed via Pandas, instantly detecting schema anomalies and missing data.
+- **Dynamic Validation Engine** — Flexible rule sets loaded straight from the database. Configure phone digits by country (e.g., India +91 requires 10 digits) right from the Settings UI.
+- **Native Excel Generation** — Avoids the classic "Excel scientific notation bug". The engine natively exports cleaned datasets and error logs as auto-formatted `.xlsx` files. No more mangled phone numbers (`7.33E+10`) or squished dates (`########`)!
+- **Offline "AI" Insights** — Generates incredibly smart data profiling insights without an API key. Uses a deterministic heuristic engine to find the most problematic fields, error types, and geographic failure trends.
+- **Interactive Analytics** — Features global and per-dataset dashboards built with Plotly. Explore Data Survival Funnels, Hierarchical Error Treemaps, and historical Quality Score timelines.
+- **Premium UI / UX** — Complete overhaul of Streamlit's default components. Features glassmorphism cards, vibrant gradient KPIs, smooth native AgGrid data tables, and intuitive tabbed navigation.
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | Next.js 15, TypeScript, Tailwind CSS, shadcn/ui |
-| State | React Query, Zustand |
-| Backend | FastAPI, Pandas, Polars |
-| Database | PostgreSQL (Neon), Prisma ORM |
-| Reports | ReportLab (PDF generation) |
+## 🛠️ Tech Stack
 
-## Project Structure
+| Component | Technology |
+|-----------|-----------|
+| **Frontend UI** | Streamlit, Streamlit-AgGrid |
+| **Data Engine** | Pandas |
+| **Database** | SQLite (SQLAlchemy ORM) |
+| **Visualizations** | Plotly Express & Graph Objects |
+| **Exports** | OpenPyXL (Excel), ReportLab (PDF) |
 
-```
-TransatIQ/
-├── frontend/          # Next.js 15 App Router
-│   ├── src/app/       # Pages (Dashboard, Upload, Results, Rules, etc.)
-│   ├── src/components/# UI components
-│   ├── src/lib/       # API client, utilities
-│   ├── prisma/        # Database schema & seed
-├── backend/           # FastAPI processing engine
-│   ├── app/services/  # Validation, cleaning, AI summary, reports
-│   ├── app/routers/   # API endpoints
-├── sample-data/       # Sample CSV for testing
-└── docker-compose.yml # Local PostgreSQL
-```
+## 🚀 Quick Start
 
-## Quick Start
+TransactIQ is designed to be effortlessly portable. You don't need Docker, PostgreSQL, or Node.js. 
 
-### 1. Start PostgreSQL
-
+### 1. Clone & Install
 ```bash
-docker compose up -d
-```
+git clone https://github.com/PrachiMishra7/TransactIQ.git
+cd TransactIQ
 
-Or use [Neon](https://neon.tech) free tier and copy your connection string.
-
-### 2. Backend Setup
-
-```bash
-cd backend
+# Create a virtual environment (optional but recommended)
 python -m venv venv
+# Windows: venv\Scripts\activate
+# Mac/Linux: source venv/bin/activate
 
-# Windows
-venv\Scripts\activate
-
+# Install dependencies
 pip install -r requirements.txt
-cp .env.example .env
-# Edit .env with your DATABASE_URL
-
-uvicorn app.main:app --reload --port 8000
 ```
 
-### 3. Frontend Setup
-
+### 2. Run the Platform
 ```bash
-cd frontend
-cp .env.example .env
-npm install
-npx prisma generate
-npx prisma db push
-npm run db:seed
-npm run dev
+streamlit run app.py
 ```
+Open **http://localhost:8501** in your browser.
 
-Open **http://localhost:3000**
+## ☁️ Deployment (Streamlit Community Cloud)
 
-### 4. Test with Sample Data
+TransactIQ features cross-platform pathing, making it 100% ready for free cloud deployment:
+1. Push this repository to GitHub.
+2. Go to [share.streamlit.io](https://share.streamlit.io/).
+3. Click **New app**, select your repository, and set the Main file path to `app.py`.
+4. Click **Deploy**!
+*(Note: Because the "AI Insights" are built locally, you **do not** need to configure an `OPENAI_API_KEY` secret!)*
 
-Upload `sample-data/transactions_sample.csv` from the Upload page. The sample contains intentional errors to demonstrate validation:
+## 🧪 Testing with Sample Data
 
-- Invalid phone lengths (India/Singapore)
-- Malformed emails (`bob@gmail`)
-- Duplicate order IDs
-- Delivery date before order date
-- Price calculation mismatches
-- Missing transaction IDs
-- Unsupported payment methods
+Upload `sample-data/transactions_sample.csv` (or any CSV) on the Upload page. The sample contains intentional data corruption to demonstrate the validation engine:
+- Phone numbers lacking country codes or correct digit lengths.
+- Malformed email domains.
+- Total price calculation mismatches (Qty × Unit Price != Total).
+- Delivery dates occurring *before* order dates.
 
-## API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/uploads` | Upload and process file |
-| GET | `/api/uploads/{id}/status` | Processing status |
-| GET | `/api/uploads/{id}/results` | Validation results |
-| GET | `/api/uploads/{id}/errors` | Paginated errors |
-| GET | `/api/uploads/{id}/download/{type}` | Download cleaned/errors/report |
-| GET | `/api/dashboard/stats` | Dashboard KPIs |
-| GET/POST | `/api/rules` | Manage validation rules |
-| POST | `/api/uploads/chunk` | CSV chunking |
-
-## Deployment
-
-### Frontend (Vercel)
-1. Connect repo, set root to `frontend/`
-2. Set `NEXT_PUBLIC_API_URL` to your backend URL
-
-### Backend (Railway/Render)
-1. Set root to `backend/`
-2. Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-3. Set `DATABASE_URL` to Neon connection string
-
-### Database (Neon)
-1. Create free PostgreSQL database at neon.tech
-2. Use connection string in both frontend and backend `.env`
-
-## Validation Rules
-
-Default rules are seeded on first load:
-
-| Country | Code | Field | Rule |
-|---------|------|-------|------|
-| India | +91 | phone | 10 digits |
-| Singapore | +65 | phone | 8 digits |
-
-Admin can add/edit/disable rules at `/rules` without code changes.
-
-## License
-
-MIT — Built for Xeno internship assignment demonstration.
+## 📄 License
+MIT License. Built as a demonstration for enterprise transaction processing pipelines.
