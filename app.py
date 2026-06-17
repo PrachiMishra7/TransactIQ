@@ -39,27 +39,18 @@ with st.sidebar:
         if uploads:
             options = {u.id: f"{u.file_name} ({u.created_at.strftime('%b %d, %H:%M')})" for u in uploads}
             
-            # Default to the most recent upload if none is selected
-            if "current_upload_id" not in st.session_state:
-                st.session_state["current_upload_id"] = uploads[0].id
+            if "current_upload_id" not in st.session_state or st.session_state["current_upload_id"] not in options:
+                st.session_state["current_upload_id"] = list(options.keys())[0]
                 
-            current_val = st.session_state.get("current_upload_id")
-            if current_val not in options:
-                current_val = uploads[0].id
-                
-            selected = st.selectbox(
+            st.selectbox(
                 "Active Dataset",
                 options=list(options.keys()),
                 format_func=lambda x: options[x],
-                index=list(options.keys()).index(current_val)
+                key="current_upload_id"
             )
             
-            if selected != st.session_state.get("current_upload_id"):
-                st.session_state["current_upload_id"] = selected
-                st.rerun()
-            
             if st.button("Delete Dataset", icon=":material/delete:", use_container_width=True):
-                upload_to_delete = db.query(Upload).filter(Upload.id == selected).first()
+                upload_to_delete = db.query(Upload).filter(Upload.id == st.session_state["current_upload_id"]).first()
                 if upload_to_delete:
                     db.delete(upload_to_delete)
                     db.commit()
