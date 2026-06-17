@@ -690,3 +690,13 @@ header { background: transparent !important; box-shadow: none !important; }
 .indicator-dot.active { background: #10B981; box-shadow: 0 0 8px rgba(16,185,129,0.5); }
 .indicator-dot.inactive { background: #94A3B8; }
 .indicator-dot.warning { background: #F59E0B; }
+
+/* ============================================
+   LAYOUT FIXES
+   ============================================ */
+/* Fix Streamlit's block container bleeding into sidebar on small/medium screens */
+[data-testid="block-container"] {
+    padding-left: 3rem !important;
+    padding-right: 3rem !important;
+    max-width: 1400px !important;
+}
