@@ -24,7 +24,8 @@ html, body, [data-testid="stAppViewContainer"] {
 [data-testid="stSidebar"] a:hover { color: #4F46E5 !important; }
 
 /* Hide Streamlit chrome */
-#MainMenu, header, footer { visibility: hidden; }
+#MainMenu, footer { visibility: hidden; }
+header { background: transparent !important; box-shadow: none !important; }
 [data-testid="stDecoration"] { display: none; }
 
 /* ============================================
@@ -526,3 +527,149 @@ html, body, [data-testid="stAppViewContainer"] {
     border-radius: 14px !important;
     box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
 }
+
+
+/* ============================================
+   TIMELINE (Home Page)
+   ============================================ */
+.timeline-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+    overflow-x: auto;
+}
+.timeline-line {
+    position: absolute;
+    top: 50%;
+    left: 20px;
+    right: 20px;
+    height: 2px;
+    background: #E2E8F0;
+    z-index: 1;
+    transform: translateY(-50%);
+}
+.timeline-node {
+    position: relative;
+    z-index: 2;
+    background: #FFFFFF;
+    border: 2px solid #CBD5E1;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.timeline-node.completed {
+    border-color: #10B981;
+    background: #10B981;
+    color: #FFFFFF;
+}
+.timeline-node.processing {
+    border-color: #3B82F6;
+    color: #3B82F6;
+    animation: borderPulse 2s infinite;
+}
+.timeline-node.pending {
+    color: #94A3B8;
+}
+.timeline-label {
+    position: absolute;
+    top: 50px;
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #475569;
+    white-space: nowrap;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* ============================================
+   ACTIVITY FEED
+   ============================================ */
+.feed-container {
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    background: #FFFFFF;
+    padding: 1.5rem;
+}
+.feed-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid #F1F5F9;
+}
+.feed-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+.feed-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+.feed-icon.upload { background: #E0E7FF; color: #4F46E5; }
+.feed-icon.success { background: #D1FAE5; color: #059669; }
+.feed-icon.error { background: #FEE2E2; color: #DC2626; }
+.feed-icon.info { background: #FEF3C7; color: #D97706; }
+.feed-content {
+    flex: 1;
+}
+.feed-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1E293B;
+    margin-bottom: 2px;
+}
+.feed-time {
+    font-size: 0.75rem;
+    color: #94A3B8;
+}
+
+/* ============================================
+   SIDEBAR INDICATORS
+   ============================================ */
+.sidebar-status-box {
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+.sidebar-status-title {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748B;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+.sidebar-status-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #0F172A;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.indicator-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+.indicator-dot.active { background: #10B981; box-shadow: 0 0 8px rgba(16,185,129,0.5); }
+.indicator-dot.inactive { background: #94A3B8; }
+.indicator-dot.warning { background: #F59E0B; }

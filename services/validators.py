@@ -44,7 +44,7 @@ def validate_email(value: str, row: int, column: str = "email") -> list[Validati
         return [ValidationResult(row, column, "high", "Missing email address", "missing_value")]
     val = str(value).strip()
     if not EMAIL_REGEX.match(val):
-        errors.append(ValidationResult(row, column, "high", "Invalid email format", "format_error"))
+        errors.append(ValidationResult(row, column, "high", f"Invalid email format (missing @ or domain, e.g. .com): '{val}'", "format_error"))
     if ".." in val or val.startswith(".") or val.endswith("."):
         errors.append(ValidationResult(row, column, "medium", "Invalid characters in email", "invalid_chars"))
     domain = val.split("@")[-1].lower() if "@" in val else ""
@@ -85,7 +85,7 @@ def validate_phone(value: str, row: int, country_rules: list[dict], country: str
         if len(cleaned) != expected_len:
             errors.append(ValidationResult(
                 row, column, "high",
-                f"Invalid phone number length: expected {expected_len} digits for {rule.get('country_name', 'country')}",
+                f"Invalid phone length: '{value}' has {len(cleaned)} digits. Expected {expected_len} for {rule.get('country_name', 'country')}.",
                 "length_error",
             ))
     else:

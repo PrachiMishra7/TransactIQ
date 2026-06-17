@@ -2,6 +2,7 @@ import os
 import streamlit as st
 import pandas as pd
 from collections import Counter
+from st_aggrid import AgGrid, GridOptionsBuilder, ColumnsAutoSizeMode
 
 from database import SessionLocal
 from models import Upload, ProcessingStatus, ValidationError, Severity
@@ -41,7 +42,7 @@ try:
 
     # Summary Banner
     success_rate = (upload.valid_rows / upload.total_rows * 100) if upload.total_rows > 0 else 0
-    score_color = "#34D399" if upload.quality_score >= 80 else "#FCD34D" if upload.quality_score >= 60 else "#F87171"
+    score_color = "#10B981" if upload.quality_score >= 80 else "#F59E0B" if upload.quality_score >= 60 else "#EF4444"
 
     c1, c2, c3, c4 = st.columns(4)
     c1.markdown(f"""<div class="kpi-card kpi-purple">
@@ -69,7 +70,7 @@ try:
     # Fetch errors
     errors = db.query(ValidationError).filter(ValidationError.upload_id == upload_id).all()
 
-    tab1, tab2, tab3, tab4 = st.tabs(["Overview", "Errors", "Warnings", "Insights"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["Overview", "Errors", "Warnings", "Fixed Records", "Recommendations"])
 
     with tab1:
         st.markdown('<div class="card"><div class="card-title">Data Quality Overview</div>', unsafe_allow_html=True)
@@ -84,7 +85,7 @@ try:
                     labels=['Valid Data', 'Invalid Data'], 
                     values=[upload.valid_rows, upload.invalid_rows],
                     hole=.6,
-                    marker_colors=['#34D399', '#F87171']
+                    marker_colors=['#10B981', '#EF4444']
                 )])
                 fig.update_layout(
                     title_text="Data Quality Breakdown",
@@ -101,7 +102,7 @@ try:
                     col_counts = Counter(e.column_name for e in errors)
                     df_cols = pd.DataFrame(list(col_counts.items()), columns=['Column', 'Errors']).sort_values('Errors', ascending=True)
                     fig2 = px.bar(df_cols, x='Errors', y='Column', orientation='h', title='Errors by Column',
-                                  color_discrete_sequence=['#818CF8'])
+                                  color_discrete_sequence=['#4F46E5'])
                     fig2.update_layout(
                         paper_bgcolor='rgba(0,0,0,0)',
                         plot_bgcolor='rgba(0,0,0,0)',
@@ -114,7 +115,7 @@ try:
         st.markdown('</div>', unsafe_allow_html=True)
 
     with tab2:
-        st.markdown('<div class="card"><div class="card-title">Critical & High Errors</div>', unsafe_allow_html=True)
+        st.markdown('### Critical & High Errors', unsafe_allow_html=True)
         err_filtered = [e for e in errors if e.severity.value in ["CRITICAL", "HIGH"]]
         if err_filtered:
             sev_color = {"CRITICAL": "🔴", "HIGH": "🟠"}
@@ -124,13 +125,18 @@ try:
                 "Column": e.column_name,
                 "Issue": e.error_message,
             } for e in err_filtered[:500]])
-            st.dataframe(df_err, use_container_width=True, hide_index=True)
+            
+            gb = GridOptionsBuilder.from_dataframe(df_err)
+            gb.configure_default_column(resizable=True, filterable=True, sortable=True)
+            gb.configure_column("Issue", wrapText=True, autoHeight=True, width=400)
+            gb.configure_selection('single')
+            gridOptions = gb.build()
+            AgGrid(df_err, gridOptions=gridOptions, height=450, theme="alpine", columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS)
         else:
             st.success("No critical or high errors found!")
-        st.markdown('</div>', unsafe_allow_html=True)
 
     with tab3:
-        st.markdown('<div class="card"><div class="card-title">Warnings (Medium/Low)</div>', unsafe_allow_html=True)
+        st.markdown('### Warnings (Medium/Low)', unsafe_allow_html=True)
         warn_filtered = [e for e in errors if e.severity.value in ["MEDIUM", "LOW"]]
         if warn_filtered:
             sev_color = {"MEDIUM": "🟡", "LOW": "🔵"}
@@ -140,13 +146,24 @@ try:
                 "Column": e.column_name,
                 "Issue": e.error_message,
             } for e in warn_filtered[:500]])
-            st.dataframe(df_warn, use_container_width=True, hide_index=True)
+            
+            gb = GridOptionsBuilder.from_dataframe(df_warn)
+            gb.configure_default_column(resizable=True, filterable=True, sortable=True)
+            gb.configure_column("Issue", wrapText=True, autoHeight=True, width=400)
+            gb.configure_selection('single')
+            gridOptions = gb.build()
+            AgGrid(df_warn, gridOptions=gridOptions, height=450, theme="alpine", columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS)
         else:
             st.success("No warnings found!")
-        st.markdown('</div>', unsafe_allow_html=True)
 
     with tab4:
-        st.markdown('<div class="card"><div class="card-title">Xeno Smart Insights</div>', unsafe_allow_html=True)
+        st.markdown('<div class="card"><div class="card-title">AI Auto-Fixed Records</div>', unsafe_allow_html=True)
+        st.markdown("<p style='color:#64748B;'>Our AI agent attempted to automatically fix formatting issues (e.g. padding dates, cleaning phone syntax).</p>", unsafe_allow_html=True)
+        st.info("Download the Cleaned Data from the Downloads tab to view all AI-applied auto-fixes.")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with tab5:
+        st.markdown('<div class="card"><div class="card-title">Xeno Smart Recommendations</div>', unsafe_allow_html=True)
         
         c1, c2 = st.columns([1, 2])
         with c1:
@@ -165,7 +182,7 @@ try:
                     st.markdown(f"- **{count}** records with: `{issue}`")
                 
                 st.markdown("### Xeno AI Recommendation")
-                st.info("Clean customer contact fields and standardize date formats before importing to downstream CRM systems. Consider using the 'Download Cleaned' file to bypass these errors.")
+                st.success("Clean customer contact fields and standardize date formats before importing to downstream CRM systems. Consider using the 'Download Cleaned' file to bypass these errors automatically.")
             else:
                 st.success("Dataset is clean! No recommendations needed.")
                 
@@ -183,10 +200,10 @@ try:
                     time.sleep(0.8) # simulate AI thinking
                     
                     st.markdown(f"""
-                    <div style="background:rgba(99,102,241,0.1); border-left:4px solid #818CF8; padding:16px; margin-top:16px; border-radius:4px;">
-                        <h4 style="margin-top:0; color:#818CF8;">Error: {selected_err}</h4>
-                        <p><strong>AI Analysis:</strong> This error occurs because the provided value violates the schema rules or country-specific formats defined in your active Settings.</p>
-                        <p><strong>Suggested Fix:</strong> Review the raw source data for formatting discrepancies. You can update the Validation Rules engine to be more lenient, or manually correct the source values.</p>
+                    <div style="background:rgba(79,70,229,0.05); border-left:4px solid #4F46E5; padding:16px; margin-top:16px; border-radius:4px;">
+                        <h4 style="margin-top:0; color:#4F46E5;">Error: {selected_err}</h4>
+                        <p><strong>AI Analysis:</strong> This error occurs because the provided value violates the strict validation schema rules or country-specific formats defined in your active Settings for this column.</p>
+                        <p><strong>Suggested Fix:</strong> Review the raw source data for formatting discrepancies. You can update the Validation Rules engine to be more lenient for this specific country, or manually correct the source values in your CRM prior to export.</p>
                     </div>
                     """, unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
