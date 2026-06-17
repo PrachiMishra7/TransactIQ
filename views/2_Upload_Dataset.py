@@ -5,7 +5,7 @@ from datetime import datetime
 
 import streamlit as st
 import pandas as pd
-from st_aggrid import AgGrid, GridOptionsBuilder
+from st_aggrid import AgGrid, GridOptionsBuilder, ColumnsAutoSizeMode
 
 from database import SessionLocal
 from models import Upload, ProcessingStatus
@@ -83,7 +83,7 @@ try:
         gb = GridOptionsBuilder.from_dataframe(df_preview)
         gb.configure_default_column(resizable=True, filterable=True, sortable=True)
         gridOptions = gb.build()
-        AgGrid(df_preview, gridOptions=gridOptions, height=350, theme="alpine")
+        AgGrid(df_preview, gridOptions=gridOptions, height=350, theme="alpine", columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS)
         
         st.markdown('</div>', unsafe_allow_html=True)
 
