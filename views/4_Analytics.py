@@ -33,27 +33,27 @@ CHART_THEME = dict(
 
 db = SessionLocal()
 try:
-    current_id = st.session_state.get("current_upload_id")
-    
-    if current_id:
-        upload = db.query(Upload).filter(Upload.id == current_id).first()
-        total_records = upload.total_rows if upload else 0
-        valid_records = upload.valid_rows if upload else 0
-        invalid_records = upload.invalid_rows if upload else 0
+    upload_id = st.session_state.get("current_upload_id")
+    upload = db.query(Upload).filter(Upload.id == upload_id).first() if upload_id else None
+
+    if not upload:
+        st.warning("⚠️ No active dataset selected. Showing layout template. Please upload and process a dataset on the 'Upload Dataset' page to view live analytics.")
+        total_records = 0
+        valid_records = 0
+        invalid_records = 0
+        file_name = "No Active File"
+    else:
+        total_records = upload.total_rows
+        valid_records = upload.valid_rows
+        invalid_records = upload.invalid_rows
+        file_name = upload.file_name
         
         st.markdown(f"""
         <div style="background:#F8FAFC; padding:12px 20px; border-radius:8px; margin-bottom:20px; border:1px solid #E2E8F0; display:flex; justify-content:space-between; align-items:center;">
-            <div><span style="color:#64748B; font-size:0.9rem;">Analyzing Dataset:</span> <span style="font-weight:600; color:#334155;">{upload.file_name if upload else 'Unknown'}</span></div>
+            <div><span style="color:#64748B; font-size:0.9rem;">Analyzing Dataset:</span> <span style="font-weight:600; color:#334155;">{file_name}</span></div>
             <div style="background:#E0E7FF; color:#4338CA; padding:4px 10px; border-radius:6px; font-size:0.8rem; font-weight:600;">Dynamic View</div>
         </div>
         """, unsafe_allow_html=True)
-    else:
-        total_records   = db.query(func.coalesce(func.sum(Upload.total_rows), 0)).scalar()
-        valid_records   = db.query(func.coalesce(func.sum(Upload.valid_rows), 0)).scalar()
-        invalid_records = db.query(func.coalesce(func.sum(Upload.invalid_rows), 0)).scalar()
-
-    if total_records == 0:
-        st.warning("⚠️ No data uploaded yet. Showing layout template. Please upload and process a file to view actual analytics charts.")
 
     # --- Row 1: Funnel + Error Treemap ---
     r1_left, r1_right = st.columns([1, 1.5])
@@ -84,8 +84,8 @@ try:
         err_query = db.query(
             ValidationError.severity, ValidationError.error_type, func.count(ValidationError.id)
         )
-        if current_id:
-            err_query = err_query.filter(ValidationError.upload_id == current_id)
+        if upload_id:
+            err_query = err_query.filter(ValidationError.upload_id == upload_id)
             
         err_results = err_query.group_by(ValidationError.severity, ValidationError.error_type).all()
 
@@ -144,8 +144,8 @@ try:
         col_query = db.query(
             ValidationError.column_name, func.count(ValidationError.id)
         )
-        if current_id:
-            col_query = col_query.filter(ValidationError.upload_id == current_id)
+        if upload_id:
+            col_query = col_query.filter(ValidationError.upload_id == upload_id)
             
         col_results = col_query.group_by(ValidationError.column_name)\
          .order_by(func.count(ValidationError.id).desc()).limit(8).all()
