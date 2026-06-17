@@ -9,6 +9,7 @@ COLUMN_ALIASES: dict[str, list[str]] = {
     "order_date": ["order_date", "date_ordered", "purchase_date", "order_dt"],
     "delivery_date": ["delivery_date", "ship_date", "delivery_dt", "expected_delivery"],
     "sku": ["sku", "product_sku", "item_sku", "product_code", "item_code"],
+    "product_name": ["product_name", "item_name", "product", "item"],
     "quantity": ["quantity", "qty", "units", "item_quantity"],
     "unit_price": ["unit_price", "price", "item_price", "unit_cost"],
     "total_price": ["total_price", "total", "line_total", "amount", "subtotal"],

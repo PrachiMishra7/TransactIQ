@@ -66,7 +66,7 @@ def parse_file(file_path: str) -> pd.DataFrame:
     return pd.read_csv(file_path)
 
 
-async def process_upload(db: Session, upload_id: str, file_path: str):
+async def process_upload(db: Session, upload_id: str, file_path: str, user_mapping: dict | None = None):
     upload = db.query(Upload).filter(Upload.id == upload_id).first()
     if not upload:
         return
@@ -75,9 +75,15 @@ async def process_upload(db: Session, upload_id: str, file_path: str):
         await update_status(db, upload_id, ProcessingStatus.UPLOADING)
         await update_status(db, upload_id, ProcessingStatus.PARSING)
 
-        df = parse_file(file_path)
-        total_rows = len(df)
-        upload.total_rows = total_rows
+        ext = os.path.splitext(file_path)[1].lower()
+        if ext == ".csv":
+            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                total_rows = sum(1 for _ in f) - 1
+        else:
+            df_full = parse_file(file_path)
+            total_rows = len(df_full)
+
+        upload.total_rows = max(total_rows, 0)
         db.commit()
 
         rule_version_id, _ = snapshot_rules(db)
@@ -85,19 +91,34 @@ async def process_upload(db: Session, upload_id: str, file_path: str):
 
         await update_status(db, upload_id, ProcessingStatus.VALIDATING)
         phone_rules = load_phone_rules(db)
-        errors, cleaned_df = run_validation(df, phone_rules)
+        
+        errors = []
+        cleaned_dfs = []
+        
+        if ext == ".csv" and total_rows > 0:
+            CHUNK_SIZE = 50000
+            for chunk in pd.read_csv(file_path, chunksize=CHUNK_SIZE):
+                chunk_errors, chunk_cleaned = run_validation(chunk, phone_rules, user_mapping=user_mapping)
+                errors.extend(chunk_errors)
+                cleaned_dfs.append(chunk_cleaned)
+            cleaned_df = pd.concat(cleaned_dfs, ignore_index=True) if cleaned_dfs else pd.DataFrame()
+        else:
+            if total_rows > 0:
+                errors, cleaned_df = run_validation(df_full, phone_rules, user_mapping=user_mapping)
+            else:
+                cleaned_df = pd.DataFrame()
 
         await update_status(db, upload_id, ProcessingStatus.CLEANING)
 
         duplicate_count = len([e for e in errors if e.get("error_type") == "duplicate"])
-        quality = compute_quality_score(total_rows, errors, duplicate_count)
+        quality = compute_quality_score(upload.total_rows, errors, duplicate_count)
 
         rows_with_high = set(
             e["row"] for e in errors if e.get("severity") in ("high", "critical")
         )
         warning_rows = len(set(e["row"] for e in errors if e.get("severity") in ("low", "medium")))
         invalid_rows = len(rows_with_high)
-        valid_rows = total_rows - invalid_rows
+        valid_rows = upload.total_rows - invalid_rows
 
         upload.valid_rows = valid_rows
         upload.invalid_rows = invalid_rows

@@ -83,13 +83,16 @@ def get_cell(row: pd.Series, *names: str):
     return ""
 
 
-def run_validation(df: pd.DataFrame, phone_rules: list[dict]) -> tuple[list[dict], pd.DataFrame]:
+def run_validation(df: pd.DataFrame, phone_rules: list[dict], user_mapping: dict | None = None) -> tuple[list[dict], pd.DataFrame]:
     """Validate dataframe and return errors + cleaned dataframe."""
     errors: list[dict] = []
     seen_order_ids: set[str] = set()
     seen_txn_ids: set[str] = set()
 
-    mapping = map_columns(list(df.columns))
+    if user_mapping:
+        mapping = {k: v for k, v in user_mapping.items() if v and v != "(Ignore)"}
+    else:
+        mapping = map_columns(list(df.columns))
     df = df.rename(columns=mapping)
 
     for idx, row in df.iterrows():
@@ -132,9 +135,9 @@ def run_validation(df: pd.DataFrame, phone_rules: list[dict]) -> tuple[list[dict
             else:
                 seen_txn_ids.add(txn)
 
-        if any(c in df.columns for c in ["sku", "quantity", "unit_price", "total_price"]):
+        if any(c in df.columns for c in ["sku", "quantity", "unit_price", "total_price", "product_name"]):
             product_errors = validate_product(
-                get_cell(row, "sku"), get_cell(row, "quantity"),
+                get_cell(row, "product_name"), get_cell(row, "sku"), get_cell(row, "quantity"),
                 get_cell(row, "unit_price"), get_cell(row, "total_price"), row_num,
             )
             errors.extend([e.to_dict() for e in product_errors])

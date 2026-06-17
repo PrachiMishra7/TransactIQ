@@ -151,12 +151,17 @@ def validate_payment(method: str, txn_id: str, row: int) -> list[ValidationResul
     return errors
 
 
-def validate_product(sku: str, qty: Any, unit_price: Any, total_price: Any, row: int) -> list[ValidationResult]:
+def validate_product(product_name: str, sku: str, qty: Any, unit_price: Any, total_price: Any, row: int) -> list[ValidationResult]:
     errors: list[ValidationResult] = []
     q: float | None = None
     up: float | None = None
+    if not product_name or str(product_name).strip() == "" or str(product_name).lower() == "nan":
+        errors.append(ValidationResult(row, "product_name", "medium", "Missing product name", "missing_value"))
     if not sku or str(sku).strip() == "" or str(sku).lower() == "nan":
         errors.append(ValidationResult(row, "sku", "high", "Missing SKU", "missing_value"))
+    else:
+        if not re.match(r"^SKU-\d+$", str(sku).strip(), re.IGNORECASE):
+            errors.append(ValidationResult(row, "sku", "medium", f"Invalid SKU format: {sku}", "format_error"))
     try:
         q = float(qty)
         if q <= 0:
