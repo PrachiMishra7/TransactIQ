@@ -101,22 +101,37 @@ def run_validation(df: pd.DataFrame, phone_rules: list[dict], user_mapping: dict
     for idx, row in df.iterrows():
         row_num = int(idx) + 2  # 1-indexed + header
 
-        order_errors = validate_order(
-            get_cell(row, "order_id"),
-            get_cell(row, "customer_name"),
-            get_cell(row, "order_date"),
-            get_cell(row, "delivery_date"),
-            row_num, seen_order_ids,
-        )
-        errors.extend([e.to_dict() for e in order_errors])
+        # Validate order columns if they exist in the dataframe
+        if "order_id" in df.columns:
+            oid = get_cell(row, "order_id")
+            if not oid or str(oid).strip() == "" or str(oid).lower() == "nan":
+                errors.append(ValidationResult(row_num, "order_id", "critical", "Missing order ID", "missing_value").to_dict())
+            else:
+                oid_str = str(oid).strip()
+                if oid_str in seen_order_ids:
+                    errors.append(ValidationResult(row_num, "order_id", "high", f"Duplicate order ID: {oid_str}", "duplicate").to_dict())
+                else:
+                    seen_order_ids.add(oid_str)
+                    
+        if "customer_name" in df.columns:
+            name = get_cell(row, "customer_name")
+            if not name or str(name).strip() == "" or str(name).lower() == "nan":
+                errors.append(ValidationResult(row_num, "customer_name", "medium", "Missing customer name", "missing_value").to_dict())
+                
+        if "order_date" in df.columns and "delivery_date" in df.columns:
+            od = parse_date(str(get_cell(row, "order_date")))
+            dd = parse_date(str(get_cell(row, "delivery_date")))
+            if od and dd and dd < od:
+                errors.append(ValidationResult(row_num, "delivery_date", "high", "Delivery date is before order date", "relationship_error").to_dict())
 
-        email_errors = validate_email(get_cell(row, "email"), row_num)
-        errors.extend([e.to_dict() for e in email_errors])
+        if "email" in df.columns:
+            email_errors = validate_email(get_cell(row, "email"), row_num)
+            errors.extend([e.to_dict() for e in email_errors])
 
-        if validation_settings.get("phone", True):
+        if "phone" in df.columns and validation_settings.get("phone", True):
             phone_errors = validate_phone(
                 get_cell(row, "phone"), row_num, phone_rules,
-                country=str(get_cell(row, "country")),
+                country=str(get_cell(row, "country")) if "country" in df.columns else "",
             )
             errors.extend([e.to_dict() for e in phone_errors])
 
@@ -131,10 +146,19 @@ def run_validation(df: pd.DataFrame, phone_rules: list[dict], user_mapping: dict
             errors.extend([e.to_dict() for e in time_errors])
 
         if validation_settings.get("payment", True):
-            payment_errors = validate_payment(get_cell(row, "payment_method"), get_cell(row, "transaction_id"), row_num)
-            errors.extend([e.to_dict() for e in payment_errors])
+            if "payment_method" in df.columns or "transaction_id" in df.columns:
+                method = get_cell(row, "payment_method") if "payment_method" in df.columns else "cash"
+                txn_id = get_cell(row, "transaction_id") if "transaction_id" in df.columns else ""
+                payment_errors = validate_payment(method, txn_id, row_num)
+                # Filter errors to only check columns that are in df.columns
+                payment_errors = [
+                    e for e in payment_errors
+                    if (e.column == "payment_method" and "payment_method" in df.columns) or
+                       (e.column == "transaction_id" and "transaction_id" in df.columns)
+                ]
+                errors.extend([e.to_dict() for e in payment_errors])
 
-        if validation_settings.get("duplicate", True):
+        if "transaction_id" in df.columns and validation_settings.get("duplicate", True):
             txn = str(get_cell(row, "transaction_id")).strip()
             if txn and txn.lower() != "nan":
                 if txn in seen_txn_ids:
@@ -144,9 +168,15 @@ def run_validation(df: pd.DataFrame, phone_rules: list[dict], user_mapping: dict
 
         if any(c in df.columns for c in ["sku", "quantity", "unit_price", "total_price", "product_name"]):
             product_errors = validate_product(
-                get_cell(row, "product_name"), get_cell(row, "sku"), get_cell(row, "quantity"),
-                get_cell(row, "unit_price"), get_cell(row, "total_price"), row_num,
+                get_cell(row, "product_name") if "product_name" in df.columns else "dummy",
+                get_cell(row, "sku") if "sku" in df.columns else "SKU-000",
+                get_cell(row, "quantity") if "quantity" in df.columns else 1,
+                get_cell(row, "unit_price") if "unit_price" in df.columns else 0.0,
+                get_cell(row, "total_price") if "total_price" in df.columns else 0.0,
+                row_num,
             )
+            # Filter errors to only check columns that are in df.columns
+            product_errors = [e for e in product_errors if e.column in df.columns]
             errors.extend([e.to_dict() for e in product_errors])
 
     cleaned_df = apply_cleaning(df)

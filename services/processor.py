@@ -94,21 +94,32 @@ async def process_upload(db: Session, upload_id: str, file_path: str, user_mappi
         
         errors = []
         cleaned_dfs = []
+        actual_total_rows = 0
         
         if ext == ".csv" and total_rows > 0:
             CHUNK_SIZE = 50000
             for chunk in pd.read_csv(file_path, chunksize=CHUNK_SIZE):
+                chunk = chunk.dropna(how="all")
+                if chunk.empty:
+                    continue
+                actual_total_rows += len(chunk)
                 chunk_errors, chunk_cleaned = run_validation(chunk, phone_rules, user_mapping=user_mapping, validation_settings=validation_settings)
                 errors.extend(chunk_errors)
                 cleaned_dfs.append(chunk_cleaned)
             cleaned_df = pd.concat(cleaned_dfs, ignore_index=True) if cleaned_dfs else pd.DataFrame()
         else:
             if total_rows > 0:
+                df_full = parse_file(file_path)
+                df_full = df_full.dropna(how="all")
+                actual_total_rows = len(df_full)
                 errors, cleaned_df = run_validation(df_full, phone_rules, user_mapping=user_mapping, validation_settings=validation_settings)
             else:
                 cleaned_df = pd.DataFrame()
 
         await update_status(db, upload_id, ProcessingStatus.CLEANING)
+
+        upload.total_rows = actual_total_rows
+        db.commit()
 
         duplicate_count = len([e for e in errors if e.get("error_type") == "duplicate"])
         quality = compute_quality_score(upload.total_rows, errors, duplicate_count)
