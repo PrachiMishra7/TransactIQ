@@ -161,7 +161,7 @@ try:
                 placeholder.markdown(displayed)
 
         st.session_state.messages.append({"role": "assistant", "content": displayed})
-
+        st.rerun()
 
 finally:
     db.close()
