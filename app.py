@@ -56,12 +56,20 @@ with st.sidebar:
             
             if "current_upload_id" not in st.session_state or st.session_state["current_upload_id"] not in options:
                 st.session_state["current_upload_id"] = list(options.keys())[0]
+
+            option_keys = list(options.keys())
+            current_index = option_keys.index(st.session_state["current_upload_id"]) if st.session_state["current_upload_id"] in option_keys else 0
+
+            def sync_upload_id():
+                st.session_state["current_upload_id"] = st.session_state["dataset_selector"]
                 
             st.selectbox(
                 "Active Dataset",
-                options=list(options.keys()),
+                options=option_keys,
                 format_func=lambda x: options[x],
-                key="current_upload_id"
+                index=current_index,
+                key="dataset_selector",
+                on_change=sync_upload_id
             )
             
             if st.button("Delete Dataset", icon=":material/delete:", use_container_width=True):
